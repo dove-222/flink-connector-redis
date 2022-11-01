@@ -98,6 +98,6 @@ public class RedisDynamicTableSink implements DynamicTableSink {
 
     @Override
     public String asSummaryString() {
-        return "redis";
+        return "Redis";
     }
 }
