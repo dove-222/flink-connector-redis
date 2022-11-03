@@ -1,140 +1,116 @@
 package org.apache.flink.streaming.connectors.redis.options;
 
-import org.apache.flink.configuration.ConfigOption;
-import org.apache.flink.configuration.ConfigOptions;
-import org.apache.flink.configuration.MemorySize;
 
-import java.time.Duration;
-
-
+/**
+ * @author guozixuan
+ * redis sink options
+ */
 public class RedisWriteOptions {
 
-    protected final String hostname;
+    protected final String host;
+
     protected final int port;
 
-    public String getHostname() {
-        return hostname;
+    private final String password;
+
+    private final int sinkTtl;
+
+    private final int connectTimeout;
+
+    private final String dataType;
+
+    private final long bufferFlushMaxSizeInBytes;
+    private final long bufferFlushMaxMutations;
+    private final long bufferFlushIntervalMillis;
+    private final Integer parallelism;
+
+    public RedisWriteOptions(String host, int port, String password, int sinkTtl, String dataType,
+                             int connectTimeout,
+                             long bufferFlushMaxSizeInBytes,
+                             long bufferFlushMaxMutations,
+                             long bufferFlushIntervalMillis,
+                             Integer parallelism) {
+        this.host = host;
+        this.port = port;
+        this.password = password;
+        this.sinkTtl = sinkTtl;
+        this.dataType = dataType;
+        this.connectTimeout = connectTimeout;
+        this.bufferFlushMaxSizeInBytes = bufferFlushMaxSizeInBytes;
+        this.bufferFlushMaxMutations = bufferFlushMaxMutations;
+        this.bufferFlushIntervalMillis = bufferFlushIntervalMillis;
+        this.parallelism = parallelism;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public String getPassword() {
+        return password;
     }
 
     public int getPort() {
         return port;
     }
 
-    private int writeTtl;
-
-    private final String writeMode;
-
-    private final boolean isBatchMode;
-
-    private final int batchSize;
-
-    public static final ConfigOption<Integer> WRITE_TTL = ConfigOptions
-            .key("write.ttl")
-            .intType()
-            .defaultValue(24 * 3600)
-            .withDescription("Optional ttl for insert to redis");
-
-    public static final ConfigOption<String> WRITE_MODE = ConfigOptions
-            .key("write.mode")
-            .stringType()
-            .defaultValue("string")
-            .withDescription("mode for insert to redis");
-
-    public static final ConfigOption<Boolean> IS_BATCH_MODE = ConfigOptions
-            .key("is.batch.mode")
-            .booleanType()
-            .defaultValue(false)
-            .withDescription("if is.batch.mode is ture, means it can cache records and hit redis using jedis pipeline.");
-
-    public static final ConfigOption<Integer> BATCH_SIZE = ConfigOptions
-            .key("batch.size")
-            .intType()
-            .defaultValue(30)
-            .withDescription("jedis pipeline batch size.");
-
-    public static final ConfigOption<MemorySize> SINK_BUFFER_FLUSH_MAX_SIZE =
-            ConfigOptions.key("sink.buffer-flush.max-size")
-                    .memoryType()
-                    .defaultValue(MemorySize.parse("2mb"))
-                    .withDescription(
-                            "Writing option, maximum size in memory of buffered rows for each "
-                                    + "writing request. This can improve performance for writing data to Redis database, "
-                                    + "but may increase the latency. Can be set to '0' to disable it. ");
-
-    public static final ConfigOption<Integer> SINK_BUFFER_FLUSH_MAX_ROWS =
-            ConfigOptions.key("sink.buffer-flush.max-rows")
-                    .intType()
-                    .defaultValue(1000)
-                    .withDescription(
-                            "Writing option, maximum number of rows to buffer for each writing request. "
-                                    + "This can improve performance for writing data to Redis database, but may increase the latency. "
-                                    + "Can be set to '0' to disable it.");
-
-    public static final ConfigOption<Duration> SINK_BUFFER_FLUSH_INTERVAL =
-            ConfigOptions.key("sink.buffer-flush.interval")
-                    .durationType()
-                    .defaultValue(Duration.ofSeconds(1))
-                    .withDescription(
-                            "Writing option, the interval to flush any buffered rows. "
-                                    + "This can improve performance for writing data to Redis database, but may increase the latency. "
-                                    + "Can be set to '0' to disable it. Note, both 'sink.buffer-flush.max-size' and 'sink.buffer-flush.max-rows' "
-                                    + "can be set to '0' with the flush interval set allowing for complete async processing of buffered actions.");
-
-
-    public RedisWriteOptions(int writeTtl, String hostname, int port, String writeMode, boolean isBatchMode, int batchSize) {
-        this.writeTtl = writeTtl;
-        this.hostname = hostname;
-        this.port = port;
-        this.writeMode = writeMode;
-        this.isBatchMode = isBatchMode;
-        this.batchSize = batchSize;
+    public int getSinkTtl() {
+        return sinkTtl;
     }
 
-    public int getWriteTtl() {
-        return writeTtl;
+    public String getDataType() {
+        return dataType;
+    }
+
+    public int getConnectTimeout() {
+        return connectTimeout;
+    }
+
+    public long getBufferFlushMaxSizeInBytes() {
+        return bufferFlushMaxSizeInBytes;
+    }
+
+    public long getBufferFlushMaxMutations() {
+        return bufferFlushMaxMutations;
+    }
+
+    public long getBufferFlushIntervalMillis() {
+        return bufferFlushIntervalMillis;
+    }
+
+    public Integer getParallelism() {
+        return parallelism;
     }
 
     public static Builder builder() {
         return new Builder();
     }
 
-    public String getWriteMode() {
-        return writeMode;
-    }
-
-    public boolean isBatchMode() {
-        return isBatchMode;
-    }
-
-    public int getBatchSize() {
-        return batchSize;
-    }
-
     /** Builder of {@link RedisWriteOptions}. */
     public static class Builder {
-        private int writeTtl = 24 * 3600;
 
-        /** optional, max retry times for Redis connector. */
-        public Builder setWriteTtl(int writeTtl) {
-            this.writeTtl = writeTtl;
-            return this;
-        }
+        protected String host;
 
-        protected String hostname = "localhost";
+        protected int port;
 
-        protected int port = 6379;
+        private String password;
 
-        private String writeMode = "string";
+        private int sinkTtl;
 
-        private boolean isBatchMode = false;
+        private String dataType;
 
-        private int batchSize = 30;
+        private int connectTimeout;
+
+        private long bufferFlushMaxSizeInBytes;
+        private long bufferFlushMaxMutations;
+        private long bufferFlushIntervalMillis;
+        private Integer parallelism;
 
         /**
          * optional, lookup cache max size, over this value, the old data will be eliminated.
          */
-        public Builder setHostname(String hostname) {
-            this.hostname = hostname;
+        public Builder setHost(String host) {
+            this.host = host;
             return this;
         }
 
@@ -146,13 +122,54 @@ public class RedisWriteOptions {
             return this;
         }
 
-        public Builder setWriteMode(String writeMode) {
-            this.writeMode = writeMode;
+        public Builder setPassword(String password) {
+            this.password = password;
+            return this;
+        }
+
+        /** optional, max retry times for Redis connector. */
+        public Builder setSinkTtl(int sinkTtl) {
+            this.sinkTtl = sinkTtl;
+            return this;
+        }
+
+        public Builder setDataType(String dataType) {
+            this.dataType = dataType;
+            return this;
+        }
+
+        public Builder setConnectTimeout(int connectTimeout) {
+            this.connectTimeout = connectTimeout;
+            return this;
+        }
+
+        public Builder setBufferFlushMaxSizeInBytes(long bufferFlushMaxSizeInBytes) {
+            this.bufferFlushMaxSizeInBytes = bufferFlushMaxSizeInBytes;
+            return this;
+        }
+
+        public Builder setBufferFlushMaxMutations(long bufferFlushMaxMutations) {
+            this.bufferFlushMaxMutations = bufferFlushMaxMutations;
+            return this;
+        }
+
+        public Builder setBufferFlushIntervalMillis(long bufferFlushIntervalMillis) {
+            this.bufferFlushIntervalMillis = bufferFlushIntervalMillis;
+            return this;
+        }
+
+        public Builder setParallelism(Integer parallelism) {
+            this.parallelism = parallelism;
             return this;
         }
 
         public RedisWriteOptions build() {
-            return new RedisWriteOptions(writeTtl, hostname, port, writeMode, isBatchMode, batchSize);
+            return new RedisWriteOptions(host, port, password, sinkTtl, dataType,
+                    connectTimeout,
+                    bufferFlushMaxSizeInBytes,
+                    bufferFlushMaxMutations,
+                    bufferFlushIntervalMillis,
+                    parallelism);
         }
     }
 }

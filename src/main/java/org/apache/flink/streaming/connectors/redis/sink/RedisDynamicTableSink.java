@@ -1,16 +1,23 @@
 package org.apache.flink.streaming.connectors.redis.sink;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.streaming.connectors.redis.RedisSink;
-import org.apache.flink.streaming.connectors.redis.common.config.FlinkJedisConfigBase;
-import org.apache.flink.streaming.connectors.redis.common.config.FlinkJedisPoolConfig;
-import org.apache.flink.streaming.connectors.redis.common.mapper.RedisMapper;
-import org.apache.flink.streaming.connectors.redis.mapper.SetRedisMapper;
+import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.streaming.connectors.redis.RedisSinkFunction;
+import org.apache.flink.streaming.connectors.redis.config.FlinkConfigBase;
+import org.apache.flink.streaming.connectors.redis.config.RedisClusterFlinkConfig;
+import org.apache.flink.streaming.connectors.redis.config.RedisSingleFlinkConfig;
+import org.apache.flink.streaming.connectors.redis.mapper.RedisMapper;
+import org.apache.flink.streaming.connectors.redis.mapper.RedisSinkMapper;
+import org.apache.flink.streaming.connectors.redis.mapper.row.sink.HSetSinkMapper;
+import org.apache.flink.streaming.connectors.redis.mapper.row.sink.RowRedisSinkMapper;
+import org.apache.flink.streaming.connectors.redis.mapper.row.sink.SetSinkMapper;
 import org.apache.flink.streaming.connectors.redis.options.RedisWriteOptions;
+import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.EncodingFormat;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.SinkFunctionProvider;
+import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.utils.DataTypeUtils;
@@ -18,6 +25,8 @@ import org.apache.flink.types.RowKind;
 import org.apache.flink.util.Preconditions;
 
 import javax.annotation.Nullable;
+
+import static org.apache.flink.streaming.connectors.redis.options.RedisOptions.*;
 
 /**
  * https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/dev/table/sourcessinks/
@@ -29,66 +38,79 @@ public class RedisDynamicTableSink implements DynamicTableSink {
     /**
      * Data type to configure the formats.
      */
-    protected final DataType physicalDataType;
+    protected final TableSchema tableSchema;
 
     protected final RedisWriteOptions redisWriteOptions;
 
+    protected final ReadableConfig options;
+
     public RedisDynamicTableSink(
-            DataType physicalDataType
-            , RedisWriteOptions redisWriteOptions) {
-
-        // Format attributes
-        this.physicalDataType =
-                Preconditions.checkNotNull(
-                        physicalDataType, "Physical data type must not be null.");
+            TableSchema tableSchema,
+            ReadableConfig options,
+            RedisWriteOptions redisWriteOptions) {
+        this.tableSchema = Preconditions.checkNotNull(tableSchema, "Physical data type must not be null.");
+        this.options = options;
         this.redisWriteOptions = redisWriteOptions;
-    }
-
-    private @Nullable
-    SerializationSchema<RowData> createSerialization(
-            Context context,
-            @Nullable EncodingFormat<SerializationSchema<RowData>> format,
-            int[] projection) {
-        if (format == null) {
-            return null;
-        }
-        DataType physicalFormatDataType =
-                DataTypeUtils.projectRow(this.physicalDataType, projection);
-        return format.createRuntimeEncoder(context, physicalFormatDataType);
     }
 
     @Override
     public ChangelogMode getChangelogMode(ChangelogMode requestedMode) {
-        // UPSERT mode
-        ChangelogMode.Builder builder = ChangelogMode.newBuilder();
-        for (RowKind kind : requestedMode.getContainedKinds()) {
-            if (kind != RowKind.UPDATE_BEFORE) {
-                builder.addContainedKind(kind);
-            }
+        return ChangelogMode.newBuilder()
+                .addContainedKind(RowKind.INSERT)
+                .addContainedKind(RowKind.DELETE)
+                .addContainedKind(RowKind.UPDATE_AFTER)
+                .build();
+    }
+
+    private FlinkConfigBase getRedisConfig() {
+        String mode = options.get(CONNECT_MODE);
+        switch (mode) {
+            case "single":
+                return new RedisSingleFlinkConfig.Builder()
+                        .setHost(redisWriteOptions.getHost())
+                        .setPassword(redisWriteOptions.getPassword())
+                        .setPort(redisWriteOptions.getPort())
+                        .setConnectionTimeout(redisWriteOptions.getSinkTtl())
+                        .build();
+            case "cluster":
+                return new RedisClusterFlinkConfig.Builder()
+                        .setNodesInfo(redisWriteOptions.getHost())
+                        .setPassword(redisWriteOptions.getPassword())
+                        .setTimeout(redisWriteOptions.getSinkTtl())
+                        .build();
+            default:
+                throw new IllegalArgumentException("redis connect mode only support 'single' and 'cluster'");
         }
-        return builder.build();
     }
 
     @Override
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
-        FlinkJedisConfigBase flinkJedisConfigBase = new FlinkJedisPoolConfig.Builder()
-                .setHost(this.redisWriteOptions.getHostname())
-                .setPort(this.redisWriteOptions.getPort())
-                .build();
+        FlinkConfigBase redisConfig = getRedisConfig();
 
-        RedisMapper<RowData> redisMapper = null;
+        RowRedisSinkMapper redisMapper;
 
-        switch (this.redisWriteOptions.getWriteMode()) {
+        //根据 dataType 选择对应的 mapper
+        switch (this.redisWriteOptions.getDataType().toLowerCase()) {
             case "string":
-                redisMapper = new SetRedisMapper();
+                redisMapper = new SetSinkMapper();
+                break;
+            case "hash":
+                redisMapper = new HSetSinkMapper();
                 break;
             default:
-                throw new RuntimeException("其他类型 write mode 请自定义实现");
+                throw new RuntimeException("redis-connector support string / hash only.");
         }
 
-        return SinkFunctionProvider.of(new RedisSink<>(
-                flinkJedisConfigBase
-                , redisMapper));
+        return SinkFunctionProvider.of(new RedisSinkFunction<RowData>(
+                redisMapper,
+                redisConfig,
+                tableSchema,
+                3,
+                redisWriteOptions.getBufferFlushMaxSizeInBytes(),
+                redisWriteOptions.getBufferFlushMaxMutations(),
+                redisWriteOptions.getBufferFlushIntervalMillis(),
+                redisWriteOptions.getSinkTtl()),
+                redisWriteOptions.getParallelism());
     }
 
     @Override

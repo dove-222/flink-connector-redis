@@ -1,8 +1,6 @@
 package org.apache.flink.streaming.connectors.redis.source;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.streaming.connectors.redis.common.config.FlinkJedisConfigBase;
-import org.apache.flink.streaming.connectors.redis.common.config.FlinkJedisPoolConfig;
 import org.apache.flink.streaming.connectors.redis.mapper.LookupRedisMapper;
 import org.apache.flink.streaming.connectors.redis.options.RedisLookupOptions;
 import org.apache.flink.table.connector.format.DecodingFormat;
@@ -64,16 +62,16 @@ public class RedisDynamicTableSource implements LookupTableSource {
     @Override
     public LookupRuntimeProvider getLookupRuntimeProvider(LookupContext context) {
 
-        FlinkJedisConfigBase flinkJedisConfigBase = new FlinkJedisPoolConfig.Builder()
+        /*FlinkJedisConfigBase flinkJedisConfigBase = new FlinkJedisPoolConfig.Builder()
                 .setHost(this.redisLookupOptions.getHostname())
                 .setPort(this.redisLookupOptions.getPort())
-                .build();
+                .build();*/
 
         LookupRedisMapper lookupRedisMapper = new LookupRedisMapper(
                 this.createDeserialization(context, this.decodingFormat,
                         createValueFormatProjection(this.physicalDataType)));
 
-        if (isDimBatchMode) {
+        /*if (isDimBatchMode) {
             return TableFunctionProvider.of(new RedisRowDataBatchLookupFunction(
                     flinkJedisConfigBase
                     , lookupRedisMapper
@@ -87,7 +85,8 @@ public class RedisDynamicTableSource implements LookupTableSource {
                     flinkJedisConfigBase
                     , lookupRedisMapper
                     , this.redisLookupOptions));
-        }
+        }*/
+        return null;
     }
 
     private @Nullable DeserializationSchema<RowData> createDeserialization(

@@ -2,7 +2,9 @@ package org.apache.flink.streaming.connectors.redis.options;
 
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
+import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.LogicalTypeRoot;
@@ -12,30 +14,19 @@ import org.apache.flink.util.Preconditions;
 import java.time.Duration;
 import java.util.stream.IntStream;
 
-import static org.apache.flink.streaming.connectors.redis.options.RedisWriteOptions.WRITE_MODE;
-import static org.apache.flink.streaming.connectors.redis.options.RedisWriteOptions.WRITE_TTL;
 import static org.apache.flink.table.types.logical.utils.LogicalTypeChecks.hasRoot;
 
-
+/**
+ * @author guozixuan
+ * redis options item
+ */
 public class RedisOptions {
 
-    public static final ConfigOption<Integer> TIMEOUT = ConfigOptions
-            .key("timeout")
-            .intType()
-            .defaultValue(2000)
-            .withDescription("Optional timeout for connect to redis");
-
-    public static final ConfigOption<Integer> MAXIDLE = ConfigOptions
-            .key("maxIdle")
-            .intType()
-            .defaultValue(2)
-            .withDescription("Optional maxIdle for connect to redis");
-
-    public static final ConfigOption<Integer> MINIDLE = ConfigOptions
-            .key("minIdle")
-            .intType()
-            .defaultValue(1)
-            .withDescription("Optional minIdle for connect to redis");
+    public static final ConfigOption<String> HOST = ConfigOptions
+            .key("host")
+            .stringType()
+            .noDefaultValue()
+            .withDescription("Optional host for connect to redis");
 
     public static final ConfigOption<String> PASSWORD = ConfigOptions
             .key("password")
@@ -49,80 +40,65 @@ public class RedisOptions {
             .defaultValue(6379)
             .withDescription("Optional port for connect to redis");
 
-    public static final ConfigOption<String> HOSTNAME = ConfigOptions
-            .key("hostname")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Optional host for connect to redis");
-
-    public static final ConfigOption<String> CLUSTERNODES = ConfigOptions
-            .key("cluster-nodes")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Optional nodes for connect to redis cluster");
-
     public static final ConfigOption<Integer> DATABASE = ConfigOptions
             .key("database")
             .intType()
             .defaultValue(0)
             .withDescription("Optional database for connect to redis");
 
-
-    public static final ConfigOption<String> COMMAND = ConfigOptions
-            .key("command")
+    public static final ConfigOption<String> DATA_TYPE = ConfigOptions
+            .key("data.type")
             .stringType()
-            .noDefaultValue()
-            .withDescription("Optional command for connect to redis");
+            .defaultValue("string")
+            .withDescription("data mode for insert to redis");
 
-    public static final ConfigOption<String> REDISMODE = ConfigOptions
-            .key("redis-mode")
+    public static final ConfigOption<String> CONNECT_MODE = ConfigOptions
+            .key("connect.mode")
             .stringType()
             .noDefaultValue()
             .withDescription("Optional redis-mode for connect to redis");
 
-    public static final ConfigOption<String> REDIS_MASTER_NAME = ConfigOptions
-            .key("master.name")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Optional master.name for connect to redis sentinels");
+    public static final ConfigOption<Integer> CONNECT_TIMEOUT = ConfigOptions
+            .key("connect.timeout")
+            .intType()
+            .defaultValue(3000)
+            .withDescription("Optional timeout for connect to redis");
 
-    public static final ConfigOption<String> SENTINELS_INFO = ConfigOptions
-            .key("sentinels.info")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Optional sentinels.info for connect to redis sentinels");
+    public static final ConfigOption<Integer> SINK_TTL =
+            ConfigOptions.key("sink.ttl")
+                    .intType()
+                    .defaultValue(24 * 60 * 60)
+                    .withDescription("sink the cache time to live.");
 
-    public static final ConfigOption<String> SENTINELS_PASSWORD = ConfigOptions
-            .key("sentinels.password")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Optional sentinels.password for connect to redis sentinels");
+    public static final ConfigOption<MemorySize> SINK_BUFFER_FLUSH_MAX_SIZE =
+            ConfigOptions.key("sink.buffer-flush.max-size")
+                    .memoryType()
+                    .defaultValue(MemorySize.parse("2mb"))
+                    .withDescription(
+                            "Writing option, maximum size in memory of buffered rows for each "
+                                    + "writing request. This can improve performance for writing data to Redis database, "
+                                    + "but may increase the latency. Can be set to '0' to disable it. ");
 
-    public static final ConfigOption<String> KEY_COLUMN = ConfigOptions
-            .key("key-column")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Optional key-column for insert to redis");
+    public static final ConfigOption<Integer> SINK_BUFFER_FLUSH_MAX_ROWS =
+            ConfigOptions.key("sink.buffer-flush.max-rows")
+                    .intType()
+                    .defaultValue(1000)
+                    .withDescription(
+                            "Writing option, maximum number of rows to buffer for each writing request. "
+                                    + "This can improve performance for writing data to Redis database, but may increase the latency. "
+                                    + "Can be set to '0' to disable it.");
 
-    public static final ConfigOption<String> VALUE_COLUMN = ConfigOptions
-            .key("value-column")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Optional value_column for insert to redis");
+    public static final ConfigOption<Duration> SINK_BUFFER_FLUSH_INTERVAL =
+            ConfigOptions.key("sink.buffer-flush.interval")
+                    .durationType()
+                    .defaultValue(Duration.ofSeconds(1))
+                    .withDescription(
+                            "Writing option, the interval to flush any buffered rows. "
+                                    + "This can improve performance for writing data to Redis database, but may increase the latency. "
+                                    + "Can be set to '0' to disable it. Note, both 'sink.buffer-flush.max-size' and 'sink.buffer-flush.max-rows' "
+                                    + "can be set to '0' with the flush interval set allowing for complete async processing of buffered actions.");
 
-
-    public static final ConfigOption<String> FIELD_COLUMN = ConfigOptions
-            .key("field-column")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Optional field_column for insert to redis");
-
-
-    public static final ConfigOption<Boolean> PUT_IF_ABSENT = ConfigOptions
-            .key("put-if-absent")
-            .booleanType()
-            .defaultValue(false)
-            .withDescription("Optional put_if_absent for insert to redis");
+    public static final ConfigOption<Integer> SINK_PARALLELISM = FactoryUtil.SINK_PARALLELISM;
 
     public static final ConfigOption<Boolean> LOOKUP_ASYNC =
             ConfigOptions.key("lookup.async")
@@ -159,18 +135,24 @@ public class RedisOptions {
                 .setMaxRetryTimes(tableOptions.get(LOOKUP_MAX_RETRIES))
                 .setCacheExpireMs(tableOptions.get(LOOKUP_CACHE_TTL).toMillis())
                 .setCacheMaxSize(tableOptions.get(LOOKUP_CACHE_MAX_ROWS))
-                .setHostname(tableOptions.get(HOSTNAME))
+                .setHostname(tableOptions.get(HOST))
                 .setPort(tableOptions.get(PORT))
                 .build();
     }
 
     public static RedisWriteOptions getRedisWriteOptions(ReadableConfig tableOptions) {
-        return (RedisWriteOptions) RedisWriteOptions
+        return  RedisWriteOptions
                 .builder()
-                .setWriteTtl(tableOptions.get(WRITE_TTL))
-                .setWriteMode(tableOptions.get(WRITE_MODE))
-                .setHostname(tableOptions.get(HOSTNAME))
+                .setHost(tableOptions.get(HOST))
                 .setPort(tableOptions.get(PORT))
+                .setPassword(tableOptions.get(PASSWORD))
+                .setSinkTtl(tableOptions.get(SINK_TTL))
+                .setDataType(tableOptions.get(DATA_TYPE))
+                .setConnectTimeout(tableOptions.get(CONNECT_TIMEOUT))
+                .setBufferFlushMaxSizeInBytes(tableOptions.get(SINK_BUFFER_FLUSH_MAX_SIZE).getBytes())
+                .setBufferFlushMaxMutations(tableOptions.get(SINK_BUFFER_FLUSH_MAX_ROWS))
+                .setBufferFlushIntervalMillis(tableOptions.get(SINK_BUFFER_FLUSH_INTERVAL).toMillis())
+                .setParallelism(tableOptions.getOptional(SINK_PARALLELISM).orElse(null))
                 .build();
     }
 
@@ -178,7 +160,6 @@ public class RedisOptions {
      * Creates an array of indices that determine which physical fields of the table schema to
      * include in the value format.
      *
-     * <p>See {@link #VALUE_FORMAT}, {@link #VALUE_FIELDS_INCLUDE}, and {@link #KEY_FIELDS_PREFIX}
      * for more information.
      */
     public static int[] createValueFormatProjection(

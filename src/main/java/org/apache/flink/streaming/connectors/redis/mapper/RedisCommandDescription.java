@@ -1,6 +1,5 @@
 package org.apache.flink.streaming.connectors.redis.mapper;
 
-import org.apache.flink.streaming.connectors.redis.common.mapper.RedisDataType;
 
 
 public class RedisCommandDescription {

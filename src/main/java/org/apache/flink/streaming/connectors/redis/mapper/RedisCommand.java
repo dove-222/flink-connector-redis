@@ -1,15 +1,18 @@
 package org.apache.flink.streaming.connectors.redis.mapper;
 
-import org.apache.flink.streaming.connectors.redis.common.mapper.RedisDataType;
 
 
 public enum RedisCommand {
 
+    SET(RedisDataType.STRING),
+
     GET(RedisDataType.STRING),
+
+    HSET(RedisDataType.HASH),
 
     HGET(RedisDataType.HASH),
 
-    ;
+    DEL(RedisDataType.STRING);
 
     private RedisDataType redisDataType;
 

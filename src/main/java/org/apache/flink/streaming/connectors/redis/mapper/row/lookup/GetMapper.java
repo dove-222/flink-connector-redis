@@ -14,32 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.connectors.redis.container;
 
-import io.lettuce.core.RedisFuture;
+package org.apache.flink.streaming.connectors.redis.mapper.row.lookup;
 
-import java.io.Closeable;
-import java.io.Serializable;
-import java.util.List;
+import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.streaming.connectors.redis.mapper.RedisCommand;
 
-/**
- * The container for all available Redis commands.
- */
-public interface RedisCommandsContainer extends Closeable, Serializable {
+/** GET operation redis mapper. */
+public class GetMapper extends RowRedisMapper {
 
-    void open() throws Exception;
+    public GetMapper() {
+        super(RedisCommand.GET);
+    }
 
-    void set(String key, String value);
-
-    RedisFuture<String> get(String key);
-
-    void hset(String key, String field, String value);
-
-    RedisFuture<String> hget(String key, String field);
-
-    void expire(String key, int seconds);
-
-    void del(String key);
-
-    void flush();
+    public GetMapper(ReadableConfig readableConfig) {
+        super(RedisCommand.GET);
+    }
 }

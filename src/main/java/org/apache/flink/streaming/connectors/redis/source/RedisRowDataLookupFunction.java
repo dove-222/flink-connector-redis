@@ -22,9 +22,8 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.metrics.Gauge;
 import org.apache.flink.shaded.guava18.com.google.common.cache.Cache;
 import org.apache.flink.shaded.guava18.com.google.common.cache.CacheBuilder;
-import org.apache.flink.streaming.connectors.redis.common.config.FlinkJedisConfigBase;
+import org.apache.flink.streaming.connectors.redis.config.RedisClusterFlinkConfig;
 import org.apache.flink.streaming.connectors.redis.container.RedisCommandsContainer;
-import org.apache.flink.streaming.connectors.redis.container.RedisCommandsContainerBuilder;
 import org.apache.flink.streaming.connectors.redis.mapper.RedisCommand;
 import org.apache.flink.streaming.connectors.redis.mapper.RedisCommandDescription;
 import org.apache.flink.streaming.connectors.redis.mapper.LookupRedisMapper;
@@ -57,7 +56,7 @@ public class RedisRowDataLookupFunction extends TableFunction<RowData> {
 
     protected final RedisLookupOptions redisLookupOptions;
 
-    private FlinkJedisConfigBase flinkJedisConfigBase;
+    private RedisClusterFlinkConfig redisConfig;
     private RedisCommandsContainer redisCommandsContainer;
 
     private final long cacheMaxSize;
@@ -75,11 +74,11 @@ public class RedisRowDataLookupFunction extends TableFunction<RowData> {
     private transient Consumer<Object[]> evaler;
 
     public RedisRowDataLookupFunction(
-            FlinkJedisConfigBase flinkJedisConfigBase
+            RedisClusterFlinkConfig redisConfig
             , LookupRedisMapper lookupRedisMapper,
             RedisLookupOptions redisLookupOptions) {
 
-        this.flinkJedisConfigBase = flinkJedisConfigBase;
+        this.redisConfig = redisConfig;
 
         this.lookupRedisMapper = lookupRedisMapper;
         this.redisLookupOptions = redisLookupOptions;
@@ -129,7 +128,7 @@ public class RedisRowDataLookupFunction extends TableFunction<RowData> {
     public void open(FunctionContext context) {
         LOG.info("start open ...");
 
-        try {
+        /*try {
             this.redisCommandsContainer =
                     RedisCommandsContainerBuilder
                             .build(this.flinkJedisConfigBase);
@@ -137,7 +136,7 @@ public class RedisRowDataLookupFunction extends TableFunction<RowData> {
         } catch (Exception e) {
             LOG.error("Redis has not been properly initialized: ", e);
             throw new RuntimeException(e);
-        }
+        }*/
 
         this.cache = cacheMaxSize <= 0 || cacheExpireMs <= 0 ? null : CacheBuilder.newBuilder()
                 .recordStats()
@@ -160,7 +159,7 @@ public class RedisRowDataLookupFunction extends TableFunction<RowData> {
 
                     byte[] value = null;
 
-                    switch (redisCommand) {
+                   /* switch (redisCommand) {
                         case GET:
                             value = this.redisCommandsContainer.get(key);
                             break;
@@ -169,7 +168,7 @@ public class RedisRowDataLookupFunction extends TableFunction<RowData> {
                             break;
                         default:
                             throw new IllegalArgumentException("Cannot process such data type: " + redisCommand);
-                    }
+                    }*/
 
                     RowData rowData = this.lookupRedisMapper.deserialize(value);
 
@@ -188,7 +187,7 @@ public class RedisRowDataLookupFunction extends TableFunction<RowData> {
 
                 byte[] value = null;
 
-                switch (redisCommand) {
+                /*switch (redisCommand) {
                     case GET:
                         value = this.redisCommandsContainer.get(key);
                         break;
@@ -197,7 +196,7 @@ public class RedisRowDataLookupFunction extends TableFunction<RowData> {
                         break;
                     default:
                         throw new IllegalArgumentException("Cannot process such data type: " + redisCommand);
-                }
+                }*/
 
                 RowData rowData = this.lookupRedisMapper.deserialize(value);
 

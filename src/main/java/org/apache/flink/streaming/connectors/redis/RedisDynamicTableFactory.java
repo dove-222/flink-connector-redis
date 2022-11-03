@@ -18,6 +18,8 @@ import org.apache.flink.table.factories.DeserializationFormatFactory;
 import org.apache.flink.table.factories.DynamicTableSinkFactory;
 import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
+import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.logical.LogicalType;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -48,8 +50,7 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
     @Override
     public Set<ConfigOption<?>> requiredOptions() {
         final Set<ConfigOption<?>> options = new HashSet<>();
-        options.add(HOSTNAME);
-        options.add(PASSWORD);
+        options.add(HOST);
         return options;
     }
 
@@ -61,16 +62,26 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
     public Set<ConfigOption<?>> optionalOptions() {
         final Set<ConfigOption<?>> options = new HashSet<>();
         options.add(FactoryUtil.FORMAT); // use pre-defined option for format
+
+        //connect
         options.add(PORT);
-        options.add(LOOKUP_CACHE_MAX_ROWS);
-        options.add(LOOKUP_CACHE_TTL);
-        options.add(LOOKUP_MAX_RETRIES);
+        options.add(PASSWORD);
+        options.add(DATA_TYPE);
+        options.add(CONNECT_MODE);
+        options.add(SINK_TTL);
+        options.add(CONNECT_TIMEOUT);
+        options.add(DATABASE);
+
+        //sink
         options.add(SINK_BUFFER_FLUSH_MAX_ROWS);
         options.add(SINK_BUFFER_FLUSH_INTERVAL);
         options.add(SINK_BUFFER_FLUSH_MAX_SIZE);
-        options.add(WRITE_MODE);
-        options.add(IS_BATCH_MODE);
-        options.add(BATCH_SIZE);
+        options.add(SINK_PARALLELISM);
+
+        //source
+        options.add(LOOKUP_CACHE_MAX_ROWS);
+        options.add(LOOKUP_CACHE_TTL);
+        options.add(LOOKUP_MAX_RETRIES);
         return options;
     }
 
@@ -84,6 +95,7 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
 
         final FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
 
+        //format读取
         final DecodingFormat<DeserializationSchema<RowData>> decodingFormat = helper.discoverDecodingFormat(
                 DeserializationFormatFactory.class,
                 FactoryUtil.FORMAT);
@@ -99,24 +111,19 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
 
         Configuration c = (Configuration) context.getConfiguration();
 
-        boolean isDimBatchMode = c.getBoolean("is.dim.batch.mode", false);
+        //boolean isDimBatchMode = c.getBoolean("is.dim.batch.mode", false);
 
         return new RedisDynamicTableSource(
                 schema.toPhysicalRowDataType()
                 , decodingFormat
                 , redisLookupOptions
-                , isDimBatchMode);
+                , false);
     }
 
     @Override
     public DynamicTableSink createDynamicTableSink(Context context) {
 
         final FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
-
-        // discover a suitable decoding format
-//        final EncodingFormat<SerializationSchema<RowData>> encodingFormat = helper.discoverEncodingFormat(
-//                SerializationFormatFactory.class,
-//                FactoryUtil.FORMAT);
 
         helper.validate();
 
@@ -126,7 +133,6 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
 
         TableSchema schema = context.getCatalogTable().getSchema();
 
-        return new RedisDynamicTableSink(schema.toPhysicalRowDataType()
-                , redisWriteOptions);
+        return new RedisDynamicTableSink(schema, options, redisWriteOptions);
     }
 }
