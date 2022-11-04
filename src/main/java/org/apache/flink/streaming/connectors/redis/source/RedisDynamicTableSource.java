@@ -34,8 +34,6 @@ public class RedisDynamicTableSource implements LookupTableSource {
 
     public final RedisLookupOptions redisLookupOptions;
 
-    private final boolean isDimBatchMode;
-
     public RedisDynamicTableSource(
             DataType physicalDataType
             , DecodingFormat<DeserializationSchema<RowData>> decodingFormat
@@ -49,7 +47,6 @@ public class RedisDynamicTableSource implements LookupTableSource {
         this.decodingFormat = decodingFormat;
         this.redisLookupOptions = redisLookupOptions;
 
-        this.isDimBatchMode = isDimBatchMode;
     }
 
 

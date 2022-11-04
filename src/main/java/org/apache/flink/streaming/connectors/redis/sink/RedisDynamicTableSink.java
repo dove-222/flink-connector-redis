@@ -70,13 +70,16 @@ public class RedisDynamicTableSink implements DynamicTableSink {
                         .setHost(redisWriteOptions.getHost())
                         .setPassword(redisWriteOptions.getPassword())
                         .setPort(redisWriteOptions.getPort())
-                        .setConnectionTimeout(redisWriteOptions.getSinkTtl())
+                        .setDatabase(redisWriteOptions.getDatabase())
+                        .setConnectTimeout(redisWriteOptions.getConnectTimeout())
                         .build();
             case "cluster":
                 return new RedisClusterFlinkConfig.Builder()
-                        .setNodesInfo(redisWriteOptions.getHost())
+                        .setHost(redisWriteOptions.getHost())
                         .setPassword(redisWriteOptions.getPassword())
-                        .setTimeout(redisWriteOptions.getSinkTtl())
+                        .setPort(redisWriteOptions.getPort())
+                        .setDatabase(redisWriteOptions.getDatabase())
+                        .setConnectTimeout(redisWriteOptions.getConnectTimeout())
                         .build();
             default:
                 throw new IllegalArgumentException("redis connect mode only support 'single' and 'cluster'");

@@ -33,6 +33,7 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
     public void open() throws Exception {
         connection = redisClient.connect();
         asyncCommands = connection.async();
+        //connection.setAutoFlushCommands(false);
         LOG.info("open async connection!!!!");
     }
 

@@ -4,40 +4,30 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
+ * @author guozixuan
  * cluster 模式
  */
 public class RedisClusterFlinkConfig extends FlinkConfigBase implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private final String nodesInfo;
-
-    public RedisClusterFlinkConfig(int connectionTimeout, String password, String nodesInfo) {
-        super(connectionTimeout, password);
-
-        Objects.requireNonNull(nodesInfo, "nodesInfo information should be presented");
-        this.nodesInfo = nodesInfo;
+    public RedisClusterFlinkConfig(String host, String password, int port, int database, int connectTimeout) {
+        super(host, password, port, database, connectTimeout);
     }
 
-    /** Builder for initializing {@link RedisClusterFlinkConfig}. */
     public static class Builder {
-        private String nodesInfo;
-        private int timeout;
+        private String host;
         private String password;
+        private int port;
+        private int database;
+        private int connectTimeout;
 
-        public Builder setNodesInfo(String nodesInfo) {
-            this.nodesInfo = nodesInfo;
-            return this;
+        public RedisSingleFlinkConfig build() {
+            return new RedisSingleFlinkConfig(host, password, port, database, connectTimeout);
         }
 
-        /**
-         * Sets socket / connection timeout.
-         *
-         * @param timeout socket / connection timeout, default value is 2000
-         * @return Builder itself
-         */
-        public Builder setTimeout(int timeout) {
-            this.timeout = timeout;
+        public Builder setHost(String host) {
+            this.host = host;
             return this;
         }
 
@@ -46,25 +36,30 @@ public class RedisClusterFlinkConfig extends FlinkConfigBase implements Serializ
             return this;
         }
 
-        /**
-         * Builds ClusterConfig.
-         *
-         * @return ClusterConfig
-         */
-        public RedisClusterFlinkConfig build() {
-            return new RedisClusterFlinkConfig(timeout, password, nodesInfo);
+        public Builder setPort(int port) {
+            this.port = port;
+            return this;
         }
-    }
 
-    public String getNodesInfo() {
-        return nodesInfo;
+        public Builder setDatabase(int database) {
+            this.database = database;
+            return this;
+        }
+
+        public Builder setConnectTimeout(int connectTimeout) {
+            this.connectTimeout = connectTimeout;
+            return this;
+        }
     }
 
     @Override
     public String toString() {
         return "RedisClusterFlinkConfig{" +
-                "connectionTimeout=" + connectTimeout +
+                "host='" + host + '\'' +
                 ", password='" + password + '\'' +
+                ", port=" + port +
+                ", database=" + database +
+                ", connectTimeout=" + connectTimeout +
                 '}';
     }
 }

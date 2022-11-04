@@ -13,6 +13,8 @@ public class RedisWriteOptions {
 
     private final String password;
 
+    private final int database;
+
     private final int sinkTtl;
 
     private final int connectTimeout;
@@ -24,18 +26,18 @@ public class RedisWriteOptions {
     private final long bufferFlushIntervalMillis;
     private final Integer parallelism;
 
-    public RedisWriteOptions(String host, int port, String password, int sinkTtl, String dataType,
-                             int connectTimeout,
-                             long bufferFlushMaxSizeInBytes,
-                             long bufferFlushMaxMutations,
-                             long bufferFlushIntervalMillis,
+    public RedisWriteOptions(String host, int port, String password,
+                             int database, int sinkTtl, int connectTimeout,
+                             String dataType, long bufferFlushMaxSizeInBytes,
+                             long bufferFlushMaxMutations, long bufferFlushIntervalMillis,
                              Integer parallelism) {
         this.host = host;
         this.port = port;
         this.password = password;
+        this.database = database;
         this.sinkTtl = sinkTtl;
-        this.dataType = dataType;
         this.connectTimeout = connectTimeout;
+        this.dataType = dataType;
         this.bufferFlushMaxSizeInBytes = bufferFlushMaxSizeInBytes;
         this.bufferFlushMaxMutations = bufferFlushMaxMutations;
         this.bufferFlushIntervalMillis = bufferFlushIntervalMillis;
@@ -82,6 +84,10 @@ public class RedisWriteOptions {
         return parallelism;
     }
 
+    public int getDatabase() {
+        return database;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -94,6 +100,8 @@ public class RedisWriteOptions {
         protected int port;
 
         private String password;
+
+        private int database;
 
         private int sinkTtl;
 
@@ -124,6 +132,11 @@ public class RedisWriteOptions {
 
         public Builder setPassword(String password) {
             this.password = password;
+            return this;
+        }
+
+        public Builder setDatabase(int database) {
+            this.database = database;
             return this;
         }
 
@@ -164,8 +177,8 @@ public class RedisWriteOptions {
         }
 
         public RedisWriteOptions build() {
-            return new RedisWriteOptions(host, port, password, sinkTtl, dataType,
-                    connectTimeout,
+            return new RedisWriteOptions(host, port, password, database, sinkTtl, connectTimeout,
+                    dataType,
                     bufferFlushMaxSizeInBytes,
                     bufferFlushMaxMutations,
                     bufferFlushIntervalMillis,

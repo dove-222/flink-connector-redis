@@ -50,7 +50,7 @@ public class RedisCommandsContainerBuilder {
     public static RedisCommandsContainer build(RedisClusterFlinkConfig config) {
         Objects.requireNonNull(config, "Redis pool config should not be Null");
 
-        String[] nodesInfo = config.getNodesInfo().split(",");
+        String[] nodesInfo = config.getHost().split(",");
 
         List<RedisURI> redisURIS =
                 Arrays.stream(nodesInfo)
@@ -60,6 +60,7 @@ public class RedisCommandsContainerBuilder {
                                     RedisURI.builder()
                                             .withHost(info[0])
                                             .withPort(Integer.parseInt(info[1]))
+                                            .withDatabase(config.getDatabase())
                                             .withTimeout(Duration.ofMillis(config.getConnectTimeout()));
                             if (StringUtils.isNotBlank(config.getPassword())) {
                                 builder.withPassword(config.getPassword().toCharArray());

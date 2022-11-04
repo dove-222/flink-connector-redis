@@ -10,43 +10,28 @@ public class RedisSingleFlinkConfig extends FlinkConfigBase implements Serializa
 
     private static final long serialVersionUID = 1L;
 
-    private final String host;
-    private final int port;
-    private final int database;
-
-    public RedisSingleFlinkConfig(int connectionTimeout, String password,
-                                  String host, int port, int database) {
-        super(connectionTimeout, password);
-        this.host = host;
-        this.port = port;
-        this.database = database;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public int getDatabase() {
-        return database;
+    public RedisSingleFlinkConfig(String host, String password, int port, int database, int connectTimeout) {
+        super(host, password, port, database, connectTimeout);
     }
 
     public static class Builder {
         private String host;
-        private int port;
-        private int connectionTimeout;
-        private int database;
         private String password;
+        private int port;
+        private int database;
+        private int connectTimeout;
 
         public RedisSingleFlinkConfig build() {
-            return new RedisSingleFlinkConfig(connectionTimeout, password, host, port, database);
+            return new RedisSingleFlinkConfig(host, password, port, database, connectTimeout);
         }
 
         public Builder setHost(String host) {
             this.host = host;
+            return this;
+        }
+
+        public Builder setPassword(String password) {
+            this.password = password;
             return this;
         }
 
@@ -55,19 +40,25 @@ public class RedisSingleFlinkConfig extends FlinkConfigBase implements Serializa
             return this;
         }
 
-        public Builder setConnectionTimeout(int connectionTimeout) {
-            this.connectionTimeout = connectionTimeout;
-            return this;
-        }
-
         public Builder setDatabase(int database) {
             this.database = database;
             return this;
         }
 
-        public Builder setPassword(String password) {
-            this.password = password;
+        public Builder setConnectTimeout(int connectTimeout) {
+            this.connectTimeout = connectTimeout;
             return this;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "RedisSingleFlinkConfig{" +
+                "host='" + host + '\'' +
+                ", password='" + password + '\'' +
+                ", port=" + port +
+                ", database=" + database +
+                ", connectTimeout=" + connectTimeout +
+                '}';
     }
 }

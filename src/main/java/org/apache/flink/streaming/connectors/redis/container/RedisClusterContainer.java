@@ -43,6 +43,7 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     public void open() throws Exception {
         connection = redisClusterClient.connect();
         clusterAsyncCommands = connection.async();
+        //connection.setAutoFlushCommands(false);
         LOG.info("open async connection!!!!");
     }
 

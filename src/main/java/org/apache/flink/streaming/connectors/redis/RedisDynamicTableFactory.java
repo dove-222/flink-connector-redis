@@ -51,6 +51,8 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
     public Set<ConfigOption<?>> requiredOptions() {
         final Set<ConfigOption<?>> options = new HashSet<>();
         options.add(HOST);
+        options.add(CONNECT_MODE);
+        options.add(DATA_TYPE);
         return options;
     }
 
