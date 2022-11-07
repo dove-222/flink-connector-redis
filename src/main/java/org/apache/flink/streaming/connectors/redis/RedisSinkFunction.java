@@ -11,6 +11,8 @@ import org.apache.flink.streaming.connectors.redis.container.RedisCommandsContai
 import org.apache.flink.streaming.connectors.redis.container.RedisCommandsContainerBuilder;
 import org.apache.flink.streaming.connectors.redis.mapper.RedisCommand;
 import org.apache.flink.streaming.connectors.redis.config.FlinkConfigBase;
+import org.apache.flink.streaming.connectors.redis.mapper.RedisSinkMapper;
+import org.apache.flink.streaming.connectors.redis.mapper.row.RedisCommandData;
 import org.apache.flink.streaming.connectors.redis.mapper.row.sink.RowRedisSinkMapper;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.data.RowData;
@@ -36,8 +38,7 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
 
     private static final Logger LOG = LoggerFactory.getLogger(RedisSinkFunction.class);
 
-    private RowRedisSinkMapper redisSinkMapper;
-    private RedisCommand redisCommand;
+    private RedisSinkMapper<IN> redisSinkMapper;
 
     private FlinkConfigBase flinkConfigBase;
     private RedisCommandsContainer redisCommandsContainer;
@@ -56,7 +57,7 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
 
     private transient volatile boolean closed = false;
 
-    public RedisSinkFunction(RowRedisSinkMapper redisSinkMapper,
+    public RedisSinkFunction(RedisSinkMapper<IN> redisSinkMapper,
                              FlinkConfigBase flinkConfigBase,
                              TableSchema tableSchema,
                              int maxRetryTimes,
@@ -65,7 +66,6 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
                              long bufferFlushIntervalMillis,
                              Integer ttl) {
         this.redisSinkMapper = redisSinkMapper;
-        this.redisCommand = redisSinkMapper.getRedisCommand();
         this.flinkConfigBase = flinkConfigBase;
         this.columnDataTypes = Arrays.asList(tableSchema.getFieldDataTypes());
         this.maxRetryTimes = maxRetryTimes;
@@ -115,30 +115,13 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
     }
 
     @Override
-    public void invoke(IN input, Context context) throws Exception {
-        RowData rowData = (RowData) input;
+    public void invoke(IN value, Context context) throws Exception {
 
-        //先写死 2 位, 第一位是 key, 第二位是 value
-        String[] params = new String[2];
-        for (int i = 0; i < params.length; i++) {
-            params[i] =
-                    redisSinkMapper.getKeyFromData(rowData, columnDataTypes.get(i).getLogicalType(), i);
-        }
-
-        /*if (redisValueDataStructure == RedisValueDataStructure.row) {
-            params[params.length - 1] = serializeWholeRow(rowData);
-        }*/
+        List<RedisCommandData> commands = redisSinkMapper.convertToValue(value);
 
         for (int i = 0; i <= maxRetryTimes; i++) {
             try {
-                if (rowData.getRowKind() == RowKind.DELETE) {
-                    this.redisCommandsContainer.del(params[0]);
-                } else {
-                    execute(params);
-                }
-                if (ttl != 0) {
-                    this.redisCommandsContainer.expire(params[0], ttl);
-                }
+                execute(commands);
                 break;
             } catch (UnsupportedOperationException e) {
                 throw e;
@@ -167,22 +150,32 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
         numPendingRequests.set(0);
     }
 
-    private void execute(String[] params) {
-        switch (redisCommand) {
-            case SET:
-                this.redisCommandsContainer.set(params[0], params[1]);
-                break;
-            case HSET:
-                this.redisCommandsContainer.hset(params[0], params[1], params[2]);
-                break;
-            default:
-                throw new UnsupportedOperationException(
-                        "Cannot process such data type: " + redisCommand);
+    private void execute(List<RedisCommandData> data) {
+        for (RedisCommandData item : data) {
+            RedisCommand redisCommand = item.getRedisCommand();
+            switch (redisCommand) {
+                case SET:
+                    this.redisCommandsContainer.set(item.getKey(), item.getValue());
+                    break;
+                case HSET:
+                    this.redisCommandsContainer.hset(item.getKey(), item.getField(), item.getValue());
+                    break;
+                case DEL:
+                    this.redisCommandsContainer.del(item.getKey());
+                    break;
+                default:
+                    throw new UnsupportedOperationException(
+                            "Cannot process such data type: " + redisCommand);
+            }
+
+            if (ttl != 0) {
+                this.redisCommandsContainer.expire(item.getKey(), ttl);
+            }
         }
     }
 
     /**
-     * 攒批的时候flush
+     * when a checkpoint triggered, flush
      * @param functionSnapshotContext
      * @throws Exception
      */
@@ -202,6 +195,15 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
     public void close() throws IOException {
         closed = true;
 
+        flush();
+
+        if (scheduledFuture != null) {
+            scheduledFuture.cancel(false);
+            if (executor != null) {
+                executor.shutdownNow();
+            }
+        }
+
         if (redisCommandsContainer != null) {
             try {
                 redisCommandsContainer.close();
@@ -209,13 +211,6 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
                 LOG.warn("Exception occurs while closing redis Connection.", e);
             }
             this.redisCommandsContainer = null;
-        }
-
-        if (scheduledFuture != null) {
-            scheduledFuture.cancel(false);
-            if (executor != null) {
-                executor.shutdownNow();
-            }
         }
     }
 

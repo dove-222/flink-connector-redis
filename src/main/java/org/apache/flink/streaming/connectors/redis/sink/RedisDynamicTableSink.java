@@ -1,30 +1,20 @@
 package org.apache.flink.streaming.connectors.redis.sink;
 
-import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.connectors.redis.RedisSinkFunction;
 import org.apache.flink.streaming.connectors.redis.config.FlinkConfigBase;
 import org.apache.flink.streaming.connectors.redis.config.RedisClusterFlinkConfig;
 import org.apache.flink.streaming.connectors.redis.config.RedisSingleFlinkConfig;
-import org.apache.flink.streaming.connectors.redis.mapper.RedisMapper;
-import org.apache.flink.streaming.connectors.redis.mapper.RedisSinkMapper;
-import org.apache.flink.streaming.connectors.redis.mapper.row.sink.HSetSinkMapper;
+import org.apache.flink.streaming.connectors.redis.mapper.RedisCommand;
 import org.apache.flink.streaming.connectors.redis.mapper.row.sink.RowRedisSinkMapper;
-import org.apache.flink.streaming.connectors.redis.mapper.row.sink.SetSinkMapper;
 import org.apache.flink.streaming.connectors.redis.options.RedisWriteOptions;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.ChangelogMode;
-import org.apache.flink.table.connector.format.EncodingFormat;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.SinkFunctionProvider;
-import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.utils.DataTypeUtils;
 import org.apache.flink.types.RowKind;
 import org.apache.flink.util.Preconditions;
-
-import javax.annotation.Nullable;
 
 import static org.apache.flink.streaming.connectors.redis.options.RedisOptions.*;
 
@@ -72,6 +62,7 @@ public class RedisDynamicTableSink implements DynamicTableSink {
                         .setPort(redisWriteOptions.getPort())
                         .setDatabase(redisWriteOptions.getDatabase())
                         .setConnectTimeout(redisWriteOptions.getConnectTimeout())
+                        .setAsync(redisWriteOptions.getBufferFlushMaxMutations() > 0)
                         .build();
             case "cluster":
                 return new RedisClusterFlinkConfig.Builder()
@@ -80,6 +71,7 @@ public class RedisDynamicTableSink implements DynamicTableSink {
                         .setPort(redisWriteOptions.getPort())
                         .setDatabase(redisWriteOptions.getDatabase())
                         .setConnectTimeout(redisWriteOptions.getConnectTimeout())
+                        .setAsync(redisWriteOptions.getBufferFlushMaxMutations() > 0)
                         .build();
             default:
                 throw new IllegalArgumentException("redis connect mode only support 'single' and 'cluster'");
@@ -92,13 +84,14 @@ public class RedisDynamicTableSink implements DynamicTableSink {
 
         RowRedisSinkMapper redisMapper;
 
+        String fieldTerminated = options.get(FIELD_TERMINATED);
         //根据 dataType 选择对应的 mapper
         switch (this.redisWriteOptions.getDataType().toLowerCase()) {
             case "string":
-                redisMapper = new SetSinkMapper();
+                redisMapper = new RowRedisSinkMapper(RedisCommand.SET, tableSchema, fieldTerminated);
                 break;
             case "hash":
-                redisMapper = new HSetSinkMapper();
+                redisMapper = new RowRedisSinkMapper(RedisCommand.HSET, tableSchema, fieldTerminated);
                 break;
             default:
                 throw new RuntimeException("redis-connector support string / hash only.");

@@ -25,15 +25,18 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
     protected transient RedisAsyncCommands asyncCommands;
     private transient RedisFuture redisFuture;
 
-    public RedisContainer(RedisClient redisClient) {
+    private transient final boolean isAsync;
+
+    public RedisContainer(RedisClient redisClient, boolean isAsync) {
         this.redisClient = redisClient;
+        this.isAsync = isAsync;
     }
 
     @Override
     public void open() throws Exception {
         connection = redisClient.connect();
         asyncCommands = connection.async();
-        //connection.setAutoFlushCommands(false);
+        connection.setAutoFlushCommands(!isAsync);
         LOG.info("open async connection!!!!");
     }
 

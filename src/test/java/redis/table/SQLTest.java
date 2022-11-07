@@ -23,18 +23,20 @@ public class SQLTest extends TestRedisConfigBase {
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(env, environmentSettings);
 
         String ddl =
-                "create table sink_redis(username VARCHAR, password VARCHAR) with ( 'connector'='redis', "
+                "create table sink_redis(" +
+                        "username VARCHAR, password VARCHAR, topic VARCHAR, PRIMARY KEY (username) NOT ENFORCED" +
+                        ") with ( 'connector'='redis', "
                         + "'host'='"
                         + REDIS_HOST
                         + "','port'='"
                         + REDIS_PORT
                         + "', 'connect.mode'='single','password'='"
                         + REDIS_PASSWORD
-                        + "','sink.ttl'='60')";
+                        + "','sink.ttl'='3600','data.type'='string','field.terminated'=',')";
 
         tEnv.executeSql(ddl);
         String sql =
-                " insert into sink_redis select * from (values ('cc', 'IFHnjsdafu'))";
+                " insert into sink_redis select * from (values ('qq','IFHnjsdafu','topic'))";
         TableResult tableResult = tEnv.executeSql(sql);
         tableResult.getJobClient().get().getJobExecutionResult().get();
     }

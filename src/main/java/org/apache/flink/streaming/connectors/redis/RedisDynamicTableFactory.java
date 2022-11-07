@@ -79,6 +79,11 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
         options.add(SINK_BUFFER_FLUSH_INTERVAL);
         options.add(SINK_BUFFER_FLUSH_MAX_SIZE);
         options.add(SINK_PARALLELISM);
+        options.add(FIELD_TERMINATED);
+
+        //log
+        options.add(KAFKA_LOG_SERVE);
+        options.add(LOG_TOPIC);
 
         //source
         options.add(LOOKUP_CACHE_MAX_ROWS);

@@ -10,8 +10,8 @@ public class RedisSingleFlinkConfig extends FlinkConfigBase implements Serializa
 
     private static final long serialVersionUID = 1L;
 
-    public RedisSingleFlinkConfig(String host, String password, int port, int database, int connectTimeout) {
-        super(host, password, port, database, connectTimeout);
+    public RedisSingleFlinkConfig(String host, String password, int port, int database, int connectTimeout, boolean isAsync) {
+        super(host, password, port, database, connectTimeout, isAsync);
     }
 
     public static class Builder {
@@ -20,9 +20,10 @@ public class RedisSingleFlinkConfig extends FlinkConfigBase implements Serializa
         private int port;
         private int database;
         private int connectTimeout;
+        private boolean isAsync;
 
         public RedisSingleFlinkConfig build() {
-            return new RedisSingleFlinkConfig(host, password, port, database, connectTimeout);
+            return new RedisSingleFlinkConfig(host, password, port, database, connectTimeout, isAsync);
         }
 
         public Builder setHost(String host) {
@@ -47,6 +48,11 @@ public class RedisSingleFlinkConfig extends FlinkConfigBase implements Serializa
 
         public Builder setConnectTimeout(int connectTimeout) {
             this.connectTimeout = connectTimeout;
+            return this;
+        }
+
+        public Builder setAsync(boolean async) {
+            isAsync = async;
             return this;
         }
     }

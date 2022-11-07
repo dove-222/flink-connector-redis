@@ -19,12 +19,15 @@ public abstract class FlinkConfigBase implements Serializable {
 
     protected final int connectTimeout;
 
-    public FlinkConfigBase(String host, String password, int port, int database, int connectTimeout) {
+    protected final boolean isAsync;
+
+    public FlinkConfigBase(String host, String password, int port, int database, int connectTimeout, boolean isAsync) {
         this.host = host;
         this.password = password;
         this.port = port;
         this.database = database;
         this.connectTimeout = connectTimeout;
+        this.isAsync = isAsync;
     }
 
     public String getHost() {
@@ -45,6 +48,10 @@ public abstract class FlinkConfigBase implements Serializable {
 
     public int getConnectTimeout() {
         return connectTimeout;
+    }
+
+    public boolean isAsync() {
+        return isAsync;
     }
 
     @Override

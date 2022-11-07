@@ -11,8 +11,8 @@ public class RedisClusterFlinkConfig extends FlinkConfigBase implements Serializ
 
     private static final long serialVersionUID = 1L;
 
-    public RedisClusterFlinkConfig(String host, String password, int port, int database, int connectTimeout) {
-        super(host, password, port, database, connectTimeout);
+    public RedisClusterFlinkConfig(String host, String password, int port, int database, int connectTimeout, boolean isAsync) {
+        super(host, password, port, database, connectTimeout, isAsync);
     }
 
     public static class Builder {
@@ -21,9 +21,10 @@ public class RedisClusterFlinkConfig extends FlinkConfigBase implements Serializ
         private int port;
         private int database;
         private int connectTimeout;
+        private boolean isAsync;
 
-        public RedisSingleFlinkConfig build() {
-            return new RedisSingleFlinkConfig(host, password, port, database, connectTimeout);
+        public RedisClusterFlinkConfig build() {
+            return new RedisClusterFlinkConfig(host, password, port, database, connectTimeout, isAsync);
         }
 
         public Builder setHost(String host) {
@@ -48,6 +49,11 @@ public class RedisClusterFlinkConfig extends FlinkConfigBase implements Serializ
 
         public Builder setConnectTimeout(int connectTimeout) {
             this.connectTimeout = connectTimeout;
+            return this;
+        }
+
+        public Builder setAsync(boolean async) {
+            isAsync = async;
             return this;
         }
     }

@@ -21,7 +21,7 @@ import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.connectors.redis.mapper.RedisCommand;
 
 /** HGET operation redis mapper. */
-public class HGetMapper extends RowRedisMapper {
+public class HGetMapper extends RowRedisSourceMapper {
 
     public HGetMapper() {
         super(RedisCommand.HGET);

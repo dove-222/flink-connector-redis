@@ -6,11 +6,11 @@ import org.apache.flink.streaming.connectors.redis.mapper.RedisMapper;
 
 
 /** row redis mapper. @Author: jeff.zou @Date: 2022/3/7.14:59 */
-public class RowRedisMapper<OUT> implements RedisMapper<OUT> {
+public class RowRedisSourceMapper<OUT> implements RedisMapper<OUT> {
 
     RedisCommand redisCommand;
 
-    public RowRedisMapper(RedisCommand redisCommand) {
+    public RowRedisSourceMapper(RedisCommand redisCommand) {
         this.redisCommand = redisCommand;
     }
 

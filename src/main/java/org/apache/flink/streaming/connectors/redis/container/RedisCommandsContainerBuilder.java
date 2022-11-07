@@ -44,7 +44,7 @@ public class RedisCommandsContainerBuilder {
             builder.withPassword(config.getPassword().toCharArray());
         }
 
-        return new RedisContainer(RedisClient.create(builder.build()));
+        return new RedisContainer(RedisClient.create(builder.build()), config.isAsync());
     }
 
     public static RedisCommandsContainer build(RedisClusterFlinkConfig config) {
@@ -85,7 +85,7 @@ public class RedisCommandsContainerBuilder {
                         .topologyRefreshOptions(topologyRefreshOptions)
                         .build());
 
-        return new RedisClusterContainer(clusterClient);
+        return new RedisClusterContainer(clusterClient, config.isAsync());
     }
 
 }

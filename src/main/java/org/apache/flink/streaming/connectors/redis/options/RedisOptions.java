@@ -50,7 +50,13 @@ public class RedisOptions {
             .key("data.type")
             .stringType()
             .defaultValue("string")
-            .withDescription("data mode for insert to redis");
+            .withDescription("data mode for insert to redis. choose string or hash.");
+
+    public static final ConfigOption<String> FIELD_TERMINATED = ConfigOptions
+            .key("field.terminated")
+            .stringType()
+            .defaultValue(",")
+            .withDescription("concat all data fields with this character.");
 
     public static final ConfigOption<String> CONNECT_MODE = ConfigOptions
             .key("connect.mode")
@@ -69,6 +75,18 @@ public class RedisOptions {
                     .intType()
                     .defaultValue(24 * 60 * 60)
                     .withDescription("sink the cache time to live.");
+
+    public static final ConfigOption<String> KAFKA_LOG_SERVE = ConfigOptions
+            .key("kafka.log.serve")
+            .stringType()
+            .noDefaultValue()
+            .withDescription("each redis command would product a log to kafka topic.");
+
+    public static final ConfigOption<String> LOG_TOPIC = ConfigOptions
+            .key("log.topic")
+            .stringType()
+            .defaultValue("flink-redis-log")
+            .withDescription("each redis command would product a log to kafka topic.");
 
     public static final ConfigOption<MemorySize> SINK_BUFFER_FLUSH_MAX_SIZE =
             ConfigOptions.key("sink.buffer-flush.max-size")
@@ -97,6 +115,13 @@ public class RedisOptions {
                                     + "This can improve performance for writing data to Redis database, but may increase the latency. "
                                     + "Can be set to '0' to disable it. Note, both 'sink.buffer-flush.max-size' and 'sink.buffer-flush.max-rows' "
                                     + "can be set to '0' with the flush interval set allowing for complete async processing of buffered actions.");
+
+    public static final ConfigOption<Integer> SINK_MAX_RETRIES =
+            ConfigOptions.key("sink.max-retries")
+                    .intType()
+                    .defaultValue(3)
+                    .withDescription(
+                            "when sink failed, retry.");
 
     public static final ConfigOption<Integer> SINK_PARALLELISM = FactoryUtil.SINK_PARALLELISM;
 

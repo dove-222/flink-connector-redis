@@ -30,20 +30,23 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     protected transient RedisAdvancedClusterAsyncCommands clusterAsyncCommands;
     protected transient RedisFuture redisFuture;
 
+    private transient final boolean isAsync;
+
     /**
      * 初始化 redis 命令执行器
      * @param redisClusterClient
      */
-    public RedisClusterContainer(RedisClusterClient redisClusterClient) {
+    public RedisClusterContainer(RedisClusterClient redisClusterClient, boolean isAsync) {
         Objects.requireNonNull(redisClusterClient, "redisClusterClient can not be null");
         this.redisClusterClient = redisClusterClient;
+        this.isAsync = isAsync;
     }
 
     @Override
     public void open() throws Exception {
         connection = redisClusterClient.connect();
         clusterAsyncCommands = connection.async();
-        //connection.setAutoFlushCommands(false);
+        connection.setAutoFlushCommands(!isAsync);
         LOG.info("open async connection!!!!");
     }
 
