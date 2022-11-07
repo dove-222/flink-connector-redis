@@ -120,8 +120,7 @@ public class RedisOptions {
             ConfigOptions.key("sink.max-retries")
                     .intType()
                     .defaultValue(3)
-                    .withDescription(
-                            "when sink failed, retry.");
+                    .withDescription("when sink failed, retry.");
 
     public static final ConfigOption<Integer> SINK_PARALLELISM = FactoryUtil.SINK_PARALLELISM;
 
@@ -154,7 +153,7 @@ public class RedisOptions {
                     .withDescription("the max retry times if lookup database failed.");
 
     public static RedisLookupOptions getRedisLookupOptions(ReadableConfig tableOptions) {
-        return (RedisLookupOptions) RedisLookupOptions
+        return RedisLookupOptions
                 .builder()
                 .setLookupAsync(tableOptions.get(LOOKUP_ASYNC))
                 .setMaxRetryTimes(tableOptions.get(LOOKUP_MAX_RETRIES))
@@ -166,7 +165,7 @@ public class RedisOptions {
     }
 
     public static RedisWriteOptions getRedisWriteOptions(ReadableConfig tableOptions) {
-        return  RedisWriteOptions
+        return RedisWriteOptions
                 .builder()
                 .setHost(tableOptions.get(HOST))
                 .setPort(tableOptions.get(PORT))

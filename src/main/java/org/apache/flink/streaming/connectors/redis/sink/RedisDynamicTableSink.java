@@ -101,7 +101,7 @@ public class RedisDynamicTableSink implements DynamicTableSink {
                 redisMapper,
                 redisConfig,
                 tableSchema,
-                3,
+                options.get(SINK_MAX_RETRIES),
                 redisWriteOptions.getBufferFlushMaxSizeInBytes(),
                 redisWriteOptions.getBufferFlushMaxMutations(),
                 redisWriteOptions.getBufferFlushIntervalMillis(),

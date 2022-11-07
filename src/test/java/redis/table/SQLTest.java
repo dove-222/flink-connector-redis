@@ -32,11 +32,11 @@ public class SQLTest extends TestRedisConfigBase {
                         + REDIS_PORT
                         + "', 'connect.mode'='single','password'='"
                         + REDIS_PASSWORD
-                        + "','sink.ttl'='3600','data.type'='string','field.terminated'=',')";
+                        + "','sink.ttl'='36')";
 
         tEnv.executeSql(ddl);
         String sql =
-                " insert into sink_redis select * from (values ('qq','IFHnjsdafu','topic'))";
+                " insert into sink_redis select * from (values ('qq','IFHnjsdafu','sink_topic'))";
         TableResult tableResult = tEnv.executeSql(sql);
         tableResult.getJobClient().get().getJobExecutionResult().get();
     }
