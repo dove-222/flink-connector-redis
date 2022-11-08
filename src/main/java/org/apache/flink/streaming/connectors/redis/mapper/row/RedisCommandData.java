@@ -1,5 +1,6 @@
 package org.apache.flink.streaming.connectors.redis.mapper.row;
 
+import com.alibaba.fastjson2.annotation.JSONType;
 import org.apache.flink.streaming.connectors.redis.mapper.RedisCommand;
 
 /**

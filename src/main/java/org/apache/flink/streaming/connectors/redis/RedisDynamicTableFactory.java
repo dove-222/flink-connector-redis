@@ -84,7 +84,7 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
 
         //log
         options.add(KAFKA_LOG_SERVE);
-        options.add(LOG_TOPIC);
+        options.add(KAFKA_LOG_TOPIC);
 
         //source
         options.add(LOOKUP_CACHE_MAX_ROWS);
@@ -141,6 +141,10 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
 
         TableSchema schema = context.getCatalogTable().getSchema();
 
-        return new RedisDynamicTableSink(schema, options, redisWriteOptions);
+        String databaseName = context.getObjectIdentifier().getDatabaseName();
+
+        String tableName = context.getObjectIdentifier().getObjectName();
+
+        return new RedisDynamicTableSink(schema, options, redisWriteOptions, databaseName, tableName);
     }
 }

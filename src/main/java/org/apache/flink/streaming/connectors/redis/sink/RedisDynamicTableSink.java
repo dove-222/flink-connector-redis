@@ -1,10 +1,12 @@
 package org.apache.flink.streaming.connectors.redis.sink;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.connectors.redis.RedisSinkFunction;
 import org.apache.flink.streaming.connectors.redis.config.FlinkConfigBase;
 import org.apache.flink.streaming.connectors.redis.config.RedisClusterFlinkConfig;
 import org.apache.flink.streaming.connectors.redis.config.RedisSingleFlinkConfig;
+import org.apache.flink.streaming.connectors.redis.container.KafkaLogContainer;
 import org.apache.flink.streaming.connectors.redis.mapper.RedisCommand;
 import org.apache.flink.streaming.connectors.redis.mapper.row.sink.RowRedisSinkMapper;
 import org.apache.flink.streaming.connectors.redis.options.RedisWriteOptions;
@@ -34,13 +36,21 @@ public class RedisDynamicTableSink implements DynamicTableSink {
 
     protected final ReadableConfig options;
 
+    protected final String databaseName;
+
+    protected final String tableName;
+
     public RedisDynamicTableSink(
             TableSchema tableSchema,
             ReadableConfig options,
-            RedisWriteOptions redisWriteOptions) {
+            RedisWriteOptions redisWriteOptions,
+            String databaseName,
+            String tableName) {
         this.tableSchema = Preconditions.checkNotNull(tableSchema, "Physical data type must not be null.");
         this.options = options;
         this.redisWriteOptions = redisWriteOptions;
+        this.databaseName = databaseName;
+        this.tableName = tableName;
     }
 
     @Override
@@ -97,15 +107,25 @@ public class RedisDynamicTableSink implements DynamicTableSink {
                 throw new RuntimeException("redis-connector support string / hash only.");
         }
 
+        String kafkaServers = options.get(KAFKA_LOG_SERVE);
+        String logTopic = options.get(KAFKA_LOG_TOPIC);
+        KafkaLogContainer logContainer = null;
+        if (StringUtils.isNotBlank(kafkaServers) && StringUtils.isNotBlank(logTopic)) {
+            logContainer = new KafkaLogContainer(kafkaServers, logTopic);
+        }
+
         return SinkFunctionProvider.of(new RedisSinkFunction<RowData>(
                 redisMapper,
                 redisConfig,
-                tableSchema,
+                logContainer,
                 options.get(SINK_MAX_RETRIES),
                 redisWriteOptions.getBufferFlushMaxSizeInBytes(),
                 redisWriteOptions.getBufferFlushMaxMutations(),
                 redisWriteOptions.getBufferFlushIntervalMillis(),
-                redisWriteOptions.getSinkTtl()),
+                redisWriteOptions.getSinkTtl(),
+                redisWriteOptions.getHost(),
+                databaseName,
+                tableName),
                 redisWriteOptions.getParallelism());
     }
 

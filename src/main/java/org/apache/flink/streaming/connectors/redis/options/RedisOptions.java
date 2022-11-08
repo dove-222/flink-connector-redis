@@ -77,15 +77,15 @@ public class RedisOptions {
                     .withDescription("sink the cache time to live.");
 
     public static final ConfigOption<String> KAFKA_LOG_SERVE = ConfigOptions
-            .key("kafka.log.serve")
+            .key("kafka.log.servers")
             .stringType()
             .noDefaultValue()
             .withDescription("each redis command would product a log to kafka topic.");
 
-    public static final ConfigOption<String> LOG_TOPIC = ConfigOptions
-            .key("log.topic")
+    public static final ConfigOption<String> KAFKA_LOG_TOPIC = ConfigOptions
+            .key("kafka.log.topic")
             .stringType()
-            .defaultValue("flink-redis-log")
+            .defaultValue("flink_redis_log")
             .withDescription("each redis command would product a log to kafka topic.");
 
     public static final ConfigOption<MemorySize> SINK_BUFFER_FLUSH_MAX_SIZE =
