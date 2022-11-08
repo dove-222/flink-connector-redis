@@ -52,7 +52,6 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
         final Set<ConfigOption<?>> options = new HashSet<>();
         options.add(HOST);
         options.add(CONNECT_MODE);
-        options.add(DATA_TYPE);
         return options;
     }
 
@@ -68,19 +67,18 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
         //connect
         options.add(PORT);
         options.add(PASSWORD);
-        options.add(DATA_TYPE);
-        options.add(CONNECT_MODE);
-        options.add(SINK_TTL);
         options.add(CONNECT_TIMEOUT);
         options.add(DATABASE);
+        options.add(DATA_TYPE);
 
         //sink
         options.add(SINK_BUFFER_FLUSH_MAX_ROWS);
         options.add(SINK_BUFFER_FLUSH_INTERVAL);
         options.add(SINK_BUFFER_FLUSH_MAX_SIZE);
-        options.add(SINK_PARALLELISM);
+        options.add(SINK_TTL);
         options.add(FIELD_TERMINATED);
         options.add(SINK_MAX_RETRIES);
+        options.add(SINK_PARALLELISM);
 
         //log
         options.add(KAFKA_LOG_SERVE);

@@ -32,7 +32,7 @@ public class SQLTest extends TestRedisConfigBase {
                         + REDIS_PORT
                         + "', 'connect.mode'='single','password'='"
                         + REDIS_PASSWORD
-                        + "','sink.ttl'='36')";
+                        + "','sink.ttl'='36','kafka.log.servers'='localhost:9092')";
 
         tEnv.executeSql(ddl);
         String sql =

@@ -10,6 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
@@ -18,7 +21,7 @@ import java.util.Properties;
  * @author guozixuan
  * when execute a redis command, send an message into kafka log topic.
  */
-public class KafkaLogContainer {
+public class KafkaLogContainer implements Closeable, Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaLogContainer.class);
 
@@ -60,12 +63,13 @@ public class KafkaLogContainer {
     }
 
     public void logToKafka(String jsonString, long timestamp) {
+        System.out.println(jsonString);
         ProducerRecord<String, String> record =
                 new ProducerRecord<String, String>(logTopic, null, timestamp, null, jsonString);
         kafkaProducer.send(record, callback);
     }
 
-    public void close() {
+    public void close() throws IOException {
         kafkaProducer.close();
     }
 }

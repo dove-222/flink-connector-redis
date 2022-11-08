@@ -275,8 +275,8 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
         if (logContainer != null) {
             try {
                 logContainer.close();
-            } catch (Throwable t) {
-                LOG.warn("Error closing producer.", t);
+            } catch (IOException e) {
+                LOG.warn("Error closing producer.", e);
             }
         }
     }
