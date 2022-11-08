@@ -63,7 +63,6 @@ public class KafkaLogContainer implements Closeable, Serializable {
     }
 
     public void logToKafka(String jsonString, long timestamp) {
-        System.out.println(jsonString);
         ProducerRecord<String, String> record =
                 new ProducerRecord<String, String>(logTopic, null, timestamp, null, jsonString);
         kafkaProducer.send(record, callback);
