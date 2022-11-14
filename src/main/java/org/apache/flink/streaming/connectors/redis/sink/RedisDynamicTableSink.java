@@ -94,7 +94,9 @@ public class RedisDynamicTableSink implements DynamicTableSink {
 
         RowRedisSinkMapper redisMapper;
 
+        //如果分隔符没有指定（null），将采用 json 格式序列化
         String fieldTerminated = options.get(FIELD_TERMINATED);
+
         //根据 dataType 选择对应的 mapper
         switch (this.redisWriteOptions.getDataType().toLowerCase()) {
             case "string":

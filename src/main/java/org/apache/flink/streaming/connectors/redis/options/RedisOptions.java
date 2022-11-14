@@ -55,7 +55,7 @@ public class RedisOptions {
     public static final ConfigOption<String> FIELD_TERMINATED = ConfigOptions
             .key("field.terminated")
             .stringType()
-            .defaultValue(",")
+            .noDefaultValue()
             .withDescription("concat all data fields with this character.");
 
     public static final ConfigOption<String> CONNECT_MODE = ConfigOptions

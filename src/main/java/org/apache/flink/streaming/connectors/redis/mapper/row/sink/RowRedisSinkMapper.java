@@ -1,5 +1,7 @@
 package org.apache.flink.streaming.connectors.redis.mapper.row.sink;
 
+import com.alibaba.fastjson2.JSONObject;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.connectors.redis.converter.RedisRowConverter;
 import org.apache.flink.streaming.connectors.redis.mapper.RedisCommand;
@@ -30,6 +32,8 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
     private final Map<String, DataType> tableColumns = new LinkedHashMap<>();
 
     private final String fieldTerminated;
+
+    private final String nullStringLiteral = "null";
 
     public RowRedisSinkMapper(RedisCommand redisCommand, TableSchema tableSchema, String fieldTerminated) {
         this.redisCommand = redisCommand;
@@ -65,7 +69,11 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
 
         switch (redisCommand) {
             case SET:
-                return convertToSet(data, redisKey);
+                return StringUtils.isNotBlank(fieldTerminated)
+                        ?
+                        convertToCSVSet(data, redisKey)
+                        :
+                        convertToJsonSet(data, redisKey);
             case HSET:
                 return convertToHSet(data, redisKey);
             default:
@@ -73,16 +81,25 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
         }
     }
 
-    private List<RedisCommandData> convertToSet(RowData data, String redisKey) {
+    private List<RedisCommandData> convertToJsonSet(RowData data, String redisKey) {
+        JSONObject json = new JSONObject();
+        int i = 0;
+        for (Map.Entry<String, DataType> entry : tableColumns.entrySet()) {
+            String columnName = entry.getKey();
+            DataType dataType = entry.getValue();
+            String value = RedisRowConverter.rowDataToString(dataType.getLogicalType(), data, i++);
+            json.put(columnName, checkNullString(value));
+        }
+        return Collections.singletonList(new RedisCommandData(redisCommand, redisKey, json.toJSONString(), ""));
+    }
+
+    private List<RedisCommandData> convertToCSVSet(RowData data, String redisKey) {
         StringBuilder sb = new StringBuilder();
         int i = 0;
-        for (DataType type : this.tableColumns.values()) {
-            //skip the key column
-            if (i != keyIndex) {
-                sb.append(RedisRowConverter.rowDataToString(type.getLogicalType(), data, i));
-                sb.append(fieldTerminated);
-            }
-            i++;
+        for (DataType type : tableColumns.values()) {
+            String value = RedisRowConverter.rowDataToString(type.getLogicalType(), data, i++);
+            sb.append(checkNullString(value));
+            sb.append(fieldTerminated);
         }
         sb.delete(sb.length() - fieldTerminated.length(), sb.length());
         return Collections.singletonList(new RedisCommandData(redisCommand, redisKey, sb.toString(), ""));
@@ -100,6 +117,10 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
             i++;
         }
         return list;
+    }
+
+    private String checkNullString(String value) {
+        return value == null ? nullStringLiteral : value;
     }
 
     public RedisCommand getRedisCommand() {
