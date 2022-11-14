@@ -29,15 +29,16 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
 
     private final int keyIndex;
 
-    private final Map<String, DataType> tableColumns = new LinkedHashMap<>();
+    private final Map<String, DataType> tableColumns;
 
     private final String fieldTerminated;
 
-    private final String nullStringLiteral = "null";
+    private final String nullStringLiteral;
 
-    public RowRedisSinkMapper(RedisCommand redisCommand, TableSchema tableSchema, String fieldTerminated) {
+    public RowRedisSinkMapper(RedisCommand redisCommand, TableSchema tableSchema, String fieldTerminated, String nullStringLiteral) {
         this.redisCommand = redisCommand;
         Optional<UniqueConstraint> primaryKey = tableSchema.getPrimaryKey();
+        this.tableColumns = new LinkedHashMap<>();
 
         //init redis key index and column types
         int index = 0;
@@ -54,9 +55,10 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
                 }
             }
         }
-        this.keyIndex = index;
 
+        this.keyIndex = index;
         this.fieldTerminated = fieldTerminated;
+        this.nullStringLiteral = nullStringLiteral;
     }
 
     @Override

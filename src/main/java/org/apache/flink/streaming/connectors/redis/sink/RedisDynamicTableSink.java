@@ -97,13 +97,15 @@ public class RedisDynamicTableSink implements DynamicTableSink {
         //如果分隔符没有指定（null），将采用 json 格式序列化
         String fieldTerminated = options.get(FIELD_TERMINATED);
 
+        String nullStringLiteral = options.get(NULL_STRING_LITERAL);
+
         //根据 dataType 选择对应的 mapper
         switch (this.redisWriteOptions.getDataType().toLowerCase()) {
             case "string":
-                redisMapper = new RowRedisSinkMapper(RedisCommand.SET, tableSchema, fieldTerminated);
+                redisMapper = new RowRedisSinkMapper(RedisCommand.SET, tableSchema, fieldTerminated, nullStringLiteral);
                 break;
             case "hash":
-                redisMapper = new RowRedisSinkMapper(RedisCommand.HSET, tableSchema, fieldTerminated);
+                redisMapper = new RowRedisSinkMapper(RedisCommand.HSET, tableSchema, fieldTerminated, nullStringLiteral);
                 break;
             default:
                 throw new RuntimeException("redis-connector support string / hash only.");

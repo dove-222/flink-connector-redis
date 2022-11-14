@@ -58,6 +58,12 @@ public class RedisOptions {
             .noDefaultValue()
             .withDescription("concat all data fields with this character.");
 
+    public static final ConfigOption<String> NULL_STRING_LITERAL = ConfigOptions
+            .key("null-string-literal")
+            .stringType()
+            .defaultValue("null")
+            .withDescription("the null value will be cover by this character.");
+
     public static final ConfigOption<String> CONNECT_MODE = ConfigOptions
             .key("connect.mode")
             .stringType()
