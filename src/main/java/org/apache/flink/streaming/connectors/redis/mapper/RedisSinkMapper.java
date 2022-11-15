@@ -16,5 +16,5 @@ public interface RedisSinkMapper<T> extends RedisMapper<T> {
      * @param data
      * @return key
      */
-    List<RedisCommandData> convertToValue(T data);
+    RedisCommandData convertToValue(T data);
 }

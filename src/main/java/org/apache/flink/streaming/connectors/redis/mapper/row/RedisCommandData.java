@@ -13,15 +13,16 @@ public class RedisCommandData {
 
     private final String key;
 
-    private final String value;
+    /**
+     * set  -> String
+     * hset -> Map (Set multiple hash fields)
+     */
+    private final Object value;
 
-    private final String field;
-
-    public RedisCommandData(RedisCommand redisCommand, String key, String value, String field) {
+    public RedisCommandData(RedisCommand redisCommand, String key, Object value) {
         this.redisCommand = redisCommand;
         this.key = key;
         this.value = value;
-        this.field = field;
     }
 
     public RedisCommand getRedisCommand() {
@@ -32,12 +33,8 @@ public class RedisCommandData {
         return key;
     }
 
-    public String getValue() {
+    public Object getValue() {
         return value;
-    }
-
-    public String getField() {
-        return field;
     }
 
     @Override
@@ -46,7 +43,6 @@ public class RedisCommandData {
                 "redisCommand=" + redisCommand +
                 ", key='" + key + '\'' +
                 ", value='" + value + '\'' +
-                ", field='" + field + '\'' +
                 '}';
     }
 }

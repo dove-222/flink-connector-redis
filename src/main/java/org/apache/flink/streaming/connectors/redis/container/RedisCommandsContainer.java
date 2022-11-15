@@ -21,6 +21,7 @@ import io.lettuce.core.RedisFuture;
 import java.io.Closeable;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The container for all available Redis commands.
@@ -33,7 +34,7 @@ public interface RedisCommandsContainer extends Closeable, Serializable {
 
     RedisFuture<String> get(String key);
 
-    void hset(String key, String field, String value);
+    void hset(String key, Map<String, String> map);
 
     RedisFuture<String> hget(String key, String field);
 

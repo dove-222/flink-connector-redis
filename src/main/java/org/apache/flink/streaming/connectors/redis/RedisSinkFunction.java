@@ -29,6 +29,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -156,7 +157,7 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
     @Override
     public void invoke(IN value, Context context) throws Exception {
 
-        List<RedisCommandData> commands = redisSinkMapper.convertToValue(value);
+        RedisCommandData command = redisSinkMapper.convertToValue(value);
 
         Long timestamp = context.timestamp();
         if (null == timestamp) {
@@ -165,7 +166,7 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
 
         for (int i = 0; i <= maxRetryTimes; i++) {
             try {
-                execute(commands, timestamp);
+                execute(command, timestamp);
                 break;
             } catch (UnsupportedOperationException e) {
                 throw e;
@@ -183,55 +184,32 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
         }
     }
 
+    private void execute(RedisCommandData data, long timestamp) {
+        RedisCommand redisCommand = data.getRedisCommand();
+        switch (redisCommand) {
+            case SET:
+                redisCommandsContainer.set(data.getKey(), (String) data.getValue());
+                break;
+            case HSET: redisCommandsContainer.hset(data.getKey(), (Map<String, String>) data.getValue());
+                break;
+            case DEL: redisCommandsContainer.del(data.getKey());
+                break;
+            default: throw new UnsupportedOperationException(
+                        "Cannot process such data type: " + redisCommand);
+        }
+
+        if (ttl != 0) {
+            redisCommandsContainer.expire(data.getKey(), ttl);
+        }
+
+        logToKafka(data, timestamp);
+
+    }
+
     private void flush() {
         redisCommandsContainer.flush();
         numPendingRequests.set(0);
     }
-
-    private void execute(List<RedisCommandData> data, long timestamp) {
-        for (RedisCommandData item : data) {
-            RedisCommand redisCommand = item.getRedisCommand();
-            switch (redisCommand) {
-                case SET:
-                    this.redisCommandsContainer.set(item.getKey(), item.getValue());
-                    break;
-                case HSET:
-                    this.redisCommandsContainer.hset(item.getKey(), item.getField(), item.getValue());
-                    break;
-                case DEL:
-                    this.redisCommandsContainer.del(item.getKey());
-                    break;
-                default:
-                    throw new UnsupportedOperationException(
-                            "Cannot process such data type: " + redisCommand);
-            }
-
-            if (ttl != 0) {
-                redisCommandsContainer.expire(item.getKey(), ttl);
-            }
-
-            logToKafka(item, timestamp);
-        }
-    }
-
-    private void logToKafka(RedisCommandData data, long timestamp) {
-        if (logContainer == null) {
-            return;
-        }
-
-        JSONObject json = new JSONObject();
-        json.put("command", data.getRedisCommand().getCommand());
-        json.put("key", data.getKey());
-        json.put("value", data.getValue());
-        json.put("field", data.getField());
-        json.put("ts", timestamp);
-        json.put("database", databaseName);
-        json.put("table", tableName);
-        json.put("host", host);
-
-        logContainer.logToKafka(json.toString(), timestamp);
-    }
-
 
     /**
      * when a checkpoint triggered, flush
@@ -248,6 +226,23 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
     @Override
     public void initializeState(FunctionInitializationContext functionInitializationContext) throws Exception {
         // nothing to do.
+    }
+
+    private void logToKafka(RedisCommandData data, long timestamp) {
+        if (logContainer == null) {
+            return;
+        }
+
+        JSONObject json = new JSONObject();
+        json.put("command", data.getRedisCommand().getCommand());
+        json.put("key", data.getKey());
+        json.put("value", data.getValue());
+        json.put("ts", timestamp);
+        json.put("database", databaseName);
+        json.put("table", tableName);
+        json.put("host", host);
+
+        logContainer.logToKafka(json.toString(), timestamp);
     }
 
     @Override

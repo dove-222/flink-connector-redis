@@ -11,6 +11,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -27,7 +28,7 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     protected transient RedisClusterClient redisClusterClient;
 
     protected transient StatefulRedisClusterConnection<String, String> connection;
-    protected transient RedisAdvancedClusterAsyncCommands clusterAsyncCommands;
+    protected transient RedisAdvancedClusterAsyncCommands<String, String> clusterAsyncCommands;
     protected transient RedisFuture redisFuture;
 
     private transient final boolean isAsync;
@@ -83,14 +84,14 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     }
 
     @Override
-    public void hset(String key, String field, String value) {
+    public void hset(String key, Map<String, String> map) {
         try {
-            redisFuture = clusterAsyncCommands.hset(key, field, value);
+            redisFuture = clusterAsyncCommands.hset(key, map);
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(
                         "Cannot send Redis message with command HSET to hash {} of key {} error message {}",
-                        field,
+                        map,
                         key,
                         e.getMessage());
             }

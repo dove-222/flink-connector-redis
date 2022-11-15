@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -22,7 +23,7 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
 
     private transient RedisClient redisClient;
     protected transient StatefulRedisConnection<String, String> connection;
-    protected transient RedisAsyncCommands asyncCommands;
+    protected transient RedisAsyncCommands<String, String> asyncCommands;
     private transient RedisFuture redisFuture;
 
     private transient final boolean isAsync;
@@ -73,15 +74,15 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
     }
 
     @Override
-    public void hset(String key, String field, String value) {
+    public void hset(String key, Map<String, String> map) {
         try {
-            redisFuture = asyncCommands.hset(key, field, value);
+            redisFuture = asyncCommands.hset(key, map);
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(
                         "Cannot send Redis message with command HSET to key {} and hashField {} error message {}",
                         key,
-                        field,
+                        map,
                         e.getMessage());
             }
             throw e;
