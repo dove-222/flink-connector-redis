@@ -35,6 +35,11 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
 
     private final String nullStringLiteral;
 
+    /**
+     * if a hash value is null and the nullStringLiteral has been set "false", it will skip that field.
+     */
+    private final String hashSkipNullStringLiteral = "false";
+
     public RowRedisSinkMapper(RedisCommand redisCommand, TableSchema tableSchema, String fieldTerminated, String nullStringLiteral) {
         this.redisCommand = redisCommand;
         Optional<UniqueConstraint> primaryKey = tableSchema.getPrimaryKey();
@@ -114,7 +119,11 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
             String fieldName = entry.getKey();
             String value =
                     RedisRowConverter.rowDataToString(entry.getValue().getLogicalType(), data, i++);
-            map.put(fieldName, value);
+            if (value == null && hashSkipNullStringLiteral.equals(nullStringLiteral)) {
+                //skip this field.
+            } else {
+                map.put(fieldName, checkNullString(value));
+            }
         }
         return new RedisCommandData(redisCommand, redisKey, map);
     }
