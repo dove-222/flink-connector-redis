@@ -111,12 +111,9 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
         List<RedisCommandData> list = new ArrayList<>();
         int i = 0;
         for (Map.Entry<String, DataType> entry : this.tableColumns.entrySet()) {
-            if (i != keyIndex) {
-                String value =
-                        RedisRowConverter.rowDataToString(entry.getValue().getLogicalType(), data, i);
-                list.add(new RedisCommandData(redisCommand, redisKey, value, entry.getKey()));
-            }
-            i++;
+            String value =
+                    RedisRowConverter.rowDataToString(entry.getValue().getLogicalType(), data, i++);
+            list.add(new RedisCommandData(redisCommand, redisKey, value, entry.getKey()));
         }
         return list;
     }
