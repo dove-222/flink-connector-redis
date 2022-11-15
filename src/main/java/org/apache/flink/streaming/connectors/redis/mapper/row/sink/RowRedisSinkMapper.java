@@ -113,7 +113,7 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
     }
 
     private RedisCommandData convertToHSet(RowData data, String redisKey) {
-        Map<String, String> map = new HashMap<>();
+        Map<String, String> map = new LinkedHashMap<>();
         int i = 0;
         for (Map.Entry<String, DataType> entry : tableColumns.entrySet()) {
             String fieldName = entry.getKey();
