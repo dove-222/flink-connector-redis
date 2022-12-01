@@ -176,6 +176,7 @@ public class RedisOptions {
                 .setHost(tableOptions.get(HOST))
                 .setPort(tableOptions.get(PORT))
                 .setPassword(tableOptions.get(PASSWORD))
+                .setDatabase(tableOptions.get(DATABASE))
                 .setSinkTtl(tableOptions.get(SINK_TTL))
                 .setDataType(tableOptions.get(DATA_TYPE))
                 .setConnectTimeout(tableOptions.get(CONNECT_TIMEOUT))
