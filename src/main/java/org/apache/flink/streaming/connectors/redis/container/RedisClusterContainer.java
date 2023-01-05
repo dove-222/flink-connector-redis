@@ -4,6 +4,7 @@ import io.lettuce.core.RedisFuture;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
+import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +29,8 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     protected transient RedisClusterClient redisClusterClient;
 
     protected transient StatefulRedisClusterConnection<String, String> connection;
-    protected transient RedisAdvancedClusterAsyncCommands<String, String> clusterAsyncCommands;
+    protected transient RedisAdvancedClusterAsyncCommands<String, String> asyncCommands;
+    protected transient RedisAdvancedClusterCommands<String, String> syncCommands;
     protected transient RedisFuture redisFuture;
 
     private transient final boolean isAsync;
@@ -46,15 +48,24 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     @Override
     public void open() throws Exception {
         connection = redisClusterClient.connect();
-        clusterAsyncCommands = connection.async();
-        connection.setAutoFlushCommands(!isAsync);
-        LOG.info("open async connection!!!!");
+        if (isAsync) {
+            connection.setAutoFlushCommands(false);
+            asyncCommands = connection.async();
+            LOG.info("open async cluster connection!!");
+        } else {
+            syncCommands = connection.sync();
+            LOG.info("open sync cluster connection!!");
+        }
     }
 
     @Override
     public void set(String key, String value) {
         try {
-            redisFuture = clusterAsyncCommands.set(key, value);
+            if (isAsync) {
+                redisFuture = asyncCommands.set(key, value);
+            } else {
+                syncCommands.set(key, value);
+            }
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(
@@ -70,7 +81,7 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     public RedisFuture<String> get(String key) {
         RedisFuture<String> result;
         try {
-            redisFuture = result = clusterAsyncCommands.get(key);
+            redisFuture = result = asyncCommands.get(key);
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(
@@ -86,7 +97,11 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     @Override
     public void hset(String key, Map<String, String> map) {
         try {
-            redisFuture = clusterAsyncCommands.hset(key, map);
+            if (isAsync) {
+                redisFuture = asyncCommands.hset(key, map);
+            } else {
+                syncCommands.hset(key, map);
+            }
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(
@@ -103,7 +118,7 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     public RedisFuture<String> hget(String key, String field) {
         RedisFuture<String> result;
         try {
-            redisFuture = result = clusterAsyncCommands.hget(key, field);
+            redisFuture = result = asyncCommands.hget(key, field);
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(
@@ -120,7 +135,11 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     @Override
     public void expire(String key, int seconds) {
         try {
-            redisFuture = clusterAsyncCommands.expire(key, Duration.ofSeconds(seconds));
+            if (isAsync) {
+                redisFuture = asyncCommands.expire(key, Duration.ofSeconds(seconds));
+            } else {
+                syncCommands.expire(key, Duration.ofSeconds(seconds));
+            }
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(
@@ -136,7 +155,11 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     @Override
     public void del(String key) {
         try {
-            redisFuture = clusterAsyncCommands.del(key);
+            if (isAsync) {
+                redisFuture = asyncCommands.del(key);
+            } else {
+                syncCommands.del(key);
+            }
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(
@@ -155,6 +178,8 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
 
     @Override
     public void close() throws IOException {
+        flush();
+
         try {
             if (redisFuture != null) {
                 redisFuture.await(2, TimeUnit.SECONDS);

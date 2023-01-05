@@ -58,11 +58,17 @@ public class RedisOptions {
             .noDefaultValue()
             .withDescription("concat all data fields with this character.");
 
+    public static final ConfigOption<Boolean> VALUE_IGNORE_PRIMARY_KEY = ConfigOptions
+            .key("value.ignore-primary-key")
+            .booleanType()
+            .defaultValue(false)
+            .withDescription("set this item true, if you want to ignore the key thing in the value.");
+
     public static final ConfigOption<String> NULL_STRING_LITERAL = ConfigOptions
             .key("null-string-literal")
             .stringType()
             .defaultValue("null")
-            .withDescription("the null value will be cover by this character.");
+            .withDescription("the null value will be covered by this character.");
 
     public static final ConfigOption<String> CONNECT_MODE = ConfigOptions
             .key("connect.mode")

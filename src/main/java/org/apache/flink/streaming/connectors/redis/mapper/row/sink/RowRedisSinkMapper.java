@@ -27,7 +27,7 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
 
     private final RedisCommand redisCommand;
 
-    private final int keyIndex;
+    private final int primaryKeyIndex;
 
     private final Map<String, DataType> tableColumns;
 
@@ -35,12 +35,19 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
 
     private final String nullStringLiteral;
 
+    private final Boolean ignoreKey;
+
     /**
      * if a hash value is null and the nullStringLiteral has been set "false", it will skip that field.
      */
     private final String hashSkipNullStringLiteral = "false";
 
-    public RowRedisSinkMapper(RedisCommand redisCommand, TableSchema tableSchema, String fieldTerminated, String nullStringLiteral) {
+    public RowRedisSinkMapper(RedisCommand redisCommand,
+                              TableSchema tableSchema,
+                              String fieldTerminated,
+                              String nullStringLiteral,
+                              Boolean ignoreKey) {
+
         this.redisCommand = redisCommand;
         Optional<UniqueConstraint> primaryKey = tableSchema.getPrimaryKey();
         this.tableColumns = new LinkedHashMap<>();
@@ -61,15 +68,16 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
             }
         }
 
-        this.keyIndex = index;
+        this.primaryKeyIndex = index;
         this.fieldTerminated = fieldTerminated;
         this.nullStringLiteral = nullStringLiteral;
+        this.ignoreKey = ignoreKey;
     }
 
     @Override
     public RedisCommandData convertToValue(RowData data) {
         RowKind rowKind = data.getRowKind();
-        String redisKey = data.getString(keyIndex).toString();
+        String redisKey = data.getString(primaryKeyIndex).toString();
         if (rowKind == RowKind.DELETE) {
             return new RedisCommandData(RedisCommand.DEL, redisKey, "");
         }
@@ -88,42 +96,64 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
         }
     }
 
-    private RedisCommandData convertToJsonSet(RowData data, String redisKey) {
-        JSONObject json = new JSONObject();
-        int i = 0;
-        for (Map.Entry<String, DataType> entry : tableColumns.entrySet()) {
-            String columnName = entry.getKey();
-            DataType dataType = entry.getValue();
-            String value = RedisRowConverter.rowDataToString(dataType.getLogicalType(), data, i++);
-            json.put(columnName, checkNullString(value));
-        }
-        return new RedisCommandData(redisCommand, redisKey, json.toJSONString());
-    }
-
     private RedisCommandData convertToCSVSet(RowData data, String redisKey) {
         StringBuilder sb = new StringBuilder();
         int i = 0;
         for (DataType type : tableColumns.values()) {
-            String value = RedisRowConverter.rowDataToString(type.getLogicalType(), data, i++);
-            sb.append(checkNullString(value));
-            sb.append(fieldTerminated);
+
+            // check if a key needed to be ignored
+            if (ignoreKey && i == primaryKeyIndex) {
+                i++;
+            } else {
+                String value = RedisRowConverter.rowDataToString(type.getLogicalType(), data, i++);
+                sb.append(checkNullString(value));
+                sb.append(fieldTerminated);
+            }
         }
         sb.delete(sb.length() - fieldTerminated.length(), sb.length());
         return new RedisCommandData(redisCommand, redisKey, sb.toString());
+    }
+
+    private RedisCommandData convertToJsonSet(RowData data, String redisKey) {
+        JSONObject json = new JSONObject();
+        int i = 0;
+        for (Map.Entry<String, DataType> entry : tableColumns.entrySet()) {
+
+            // check if a key needed to be ignored
+            if (ignoreKey && i == primaryKeyIndex) {
+                i++;
+            } else {
+                String columnName = entry.getKey();
+                DataType dataType = entry.getValue();
+                String value = RedisRowConverter.rowDataToString(dataType.getLogicalType(), data, i++);
+                json.put(columnName, checkNullString(value));
+            }
+
+        }
+        return new RedisCommandData(redisCommand, redisKey, json.toJSONString());
     }
 
     private RedisCommandData convertToHSet(RowData data, String redisKey) {
         Map<String, String> map = new LinkedHashMap<>();
         int i = 0;
         for (Map.Entry<String, DataType> entry : tableColumns.entrySet()) {
-            String fieldName = entry.getKey();
-            String value =
-                    RedisRowConverter.rowDataToString(entry.getValue().getLogicalType(), data, i++);
-            if (value == null && hashSkipNullStringLiteral.equals(nullStringLiteral)) {
-                //skip this field.
+
+            // check if a key needed to be ignored
+            if (ignoreKey && i == primaryKeyIndex) {
+                i++;
             } else {
-                map.put(fieldName, checkNullString(value));
+                String fieldName = entry.getKey();
+                String value =
+                        RedisRowConverter.rowDataToString(entry.getValue().getLogicalType(), data, i++);
+
+                //skip this field.
+                if (value == null && hashSkipNullStringLiteral.equals(nullStringLiteral)) {
+
+                } else {
+                    map.put(fieldName, checkNullString(value));
+                }
             }
+
         }
         return new RedisCommandData(redisCommand, redisKey, map);
     }

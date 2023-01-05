@@ -120,6 +120,7 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
             if (this.logContainer != null) {
                 this.logContainer.open();
             }
+
             this.numPendingRequests = new AtomicLong(0);
 
             if (bufferFlushIntervalMillis > 0 && bufferFlushIntervalMillis != 1) {
@@ -202,7 +203,9 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
             redisCommandsContainer.expire(data.getKey(), ttl);
         }
 
-        logToKafka(data, timestamp);
+        if (logContainer != null) {
+            logToKafka(data, timestamp);
+        }
 
     }
 
@@ -229,10 +232,6 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
     }
 
     private void logToKafka(RedisCommandData data, long timestamp) {
-        if (logContainer == null) {
-            return;
-        }
-
         JSONObject json = new JSONObject();
         json.put("command", data.getRedisCommand().getCommand());
         json.put("key", data.getKey());

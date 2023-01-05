@@ -73,6 +73,7 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
 
         //sink
         options.add(NULL_STRING_LITERAL);
+        options.add(VALUE_IGNORE_PRIMARY_KEY);
         options.add(SINK_BUFFER_FLUSH_MAX_ROWS);
         options.add(SINK_BUFFER_FLUSH_INTERVAL);
         options.add(SINK_BUFFER_FLUSH_MAX_SIZE);

@@ -99,13 +99,17 @@ public class RedisDynamicTableSink implements DynamicTableSink {
 
         String nullStringLiteral = options.get(NULL_STRING_LITERAL);
 
+        Boolean ignoreKey = options.get(VALUE_IGNORE_PRIMARY_KEY);
+
         //根据 dataType 选择对应的 mapper
         switch (this.redisWriteOptions.getDataType().toLowerCase()) {
             case "string":
-                redisMapper = new RowRedisSinkMapper(RedisCommand.SET, tableSchema, fieldTerminated, nullStringLiteral);
+                redisMapper = new RowRedisSinkMapper(RedisCommand.SET,
+                        tableSchema, fieldTerminated, nullStringLiteral, ignoreKey);
                 break;
             case "hash":
-                redisMapper = new RowRedisSinkMapper(RedisCommand.HSET, tableSchema, fieldTerminated, nullStringLiteral);
+                redisMapper = new RowRedisSinkMapper(RedisCommand.HSET,
+                        tableSchema, fieldTerminated, nullStringLiteral, ignoreKey);
                 break;
             default:
                 throw new RuntimeException("redis-connector support string / hash only.");
