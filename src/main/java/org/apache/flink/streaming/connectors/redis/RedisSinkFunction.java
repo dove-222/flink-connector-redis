@@ -12,12 +12,14 @@ import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.connectors.redis.container.KafkaLogContainer;
 import org.apache.flink.streaming.connectors.redis.container.RedisCommandsContainer;
 import org.apache.flink.streaming.connectors.redis.container.RedisCommandsContainerBuilder;
+import org.apache.flink.streaming.connectors.redis.converter.RedisRowConverter;
 import org.apache.flink.streaming.connectors.redis.mapper.RedisCommand;
 import org.apache.flink.streaming.connectors.redis.config.FlinkConfigBase;
 import org.apache.flink.streaming.connectors.redis.mapper.RedisSinkMapper;
 import org.apache.flink.streaming.connectors.redis.mapper.row.RedisCommandData;
 import org.apache.flink.streaming.connectors.redis.mapper.row.sink.RowRedisSinkMapper;
 import org.apache.flink.table.api.TableSchema;
+import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.types.RowKind;
@@ -56,6 +58,7 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
     private final long bufferFlushMaxMutations;
     private final long bufferFlushIntervalMillis;
     private final Integer ttl;
+    private final Boolean consoleLogEnabled;
 
     private final String host;
     private final String databaseName;
@@ -84,7 +87,8 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
                 ttl,
                 null,
                 null,
-                null);
+                null,
+                false);
     }
 
     public RedisSinkFunction(RedisSinkMapper<IN> redisSinkMapper,
@@ -97,7 +101,8 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
                              Integer ttl,
                              String host,
                              String databaseName,
-                             String tableName) {
+                             String tableName,
+                             Boolean consoleLogEnabled) {
         this.redisSinkMapper = redisSinkMapper;
         this.flinkConfigBase = flinkConfigBase;
         this.logContainer = logContainer;
@@ -109,6 +114,7 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
         this.host = host;
         this.databaseName = databaseName;
         this.tableName = tableName;
+        this.consoleLogEnabled = consoleLogEnabled;
     }
 
     @Override
@@ -165,9 +171,15 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
             timestamp = LocalDateTime.now().toInstant(ZoneOffset.of("+8")).toEpochMilli();
         }
 
+        if (consoleLogEnabled) {
+            consoleLog(value, command, timestamp);
+        }
+
         for (int i = 0; i <= maxRetryTimes; i++) {
             try {
                 execute(command, timestamp);
+
+                log(command, timestamp);
                 break;
             } catch (UnsupportedOperationException e) {
                 throw e;
@@ -178,6 +190,7 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
                 }
                 Thread.sleep(500L * i);
             }
+
         }
 
         if (bufferFlushMaxMutations > 0 && numPendingRequests.incrementAndGet() >= bufferFlushMaxMutations) {
@@ -203,10 +216,15 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
             redisCommandsContainer.expire(data.getKey(), ttl);
         }
 
-        if (logContainer != null) {
-            logToKafka(data, timestamp);
-        }
+    }
 
+    private void consoleLog(IN value, RedisCommandData command, Long timestamp) {
+        RowKind rowKind = ((RowData) value).getRowKind();
+        String str = String.format("CONSOLE.LOG %s key %s [command:'%s', value:'%s', ts:'%s', database:'%s', table:'%s', host:'%s']",
+                rowKind.shortString(), command.getKey(),command.getRedisCommand().getCommand(),
+                command.getValue(), timestamp, databaseName, tableName, host);
+        LOG.info(str);
+        System.out.println(str);
     }
 
     private void flush() {
@@ -231,17 +249,20 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
         // nothing to do.
     }
 
-    private void logToKafka(RedisCommandData data, long timestamp) {
-        JSONObject json = new JSONObject();
-        json.put("command", data.getRedisCommand().getCommand());
-        json.put("key", data.getKey());
-        json.put("value", data.getValue());
-        json.put("ts", timestamp);
-        json.put("database", databaseName);
-        json.put("table", tableName);
-        json.put("host", host);
+    private void log(RedisCommandData data, long timestamp) {
+        if (logContainer != null) {
+            JSONObject json = new JSONObject();
+            json.put("command", data.getRedisCommand().getCommand());
+            json.put("key", data.getKey());
+            json.put("value", data.getValue());
+            json.put("ts", timestamp);
+            json.put("database", databaseName);
+            json.put("table", tableName);
+            json.put("host", host);
 
-        logContainer.logToKafka(json.toString(), timestamp);
+            logContainer.logToKafka(json.toString(), timestamp);
+        }
+
     }
 
     @Override

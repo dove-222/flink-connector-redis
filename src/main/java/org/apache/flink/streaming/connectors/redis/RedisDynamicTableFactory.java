@@ -85,6 +85,7 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
         //log
         options.add(KAFKA_LOG_SERVE);
         options.add(KAFKA_LOG_TOPIC);
+        options.add(CONSOLE_LOG_ENABLED);
 
         //source
         options.add(LOOKUP_CACHE_MAX_ROWS);

@@ -133,7 +133,8 @@ public class RedisDynamicTableSink implements DynamicTableSink {
                 redisWriteOptions.getSinkTtl(),
                 redisWriteOptions.getHost(),
                 databaseName,
-                tableName),
+                tableName,
+                options.get(CONSOLE_LOG_ENABLED)),
                 redisWriteOptions.getParallelism());
     }
 

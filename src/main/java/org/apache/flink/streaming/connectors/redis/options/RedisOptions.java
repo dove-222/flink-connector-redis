@@ -64,6 +64,12 @@ public class RedisOptions {
             .defaultValue(false)
             .withDescription("set this item true, if you want to ignore the key thing in the value.");
 
+    public static final ConfigOption<Boolean> CONSOLE_LOG_ENABLED = ConfigOptions
+            .key("console.log.enabled")
+            .booleanType()
+            .defaultValue(false)
+            .withDescription("enable console log.");
+
     public static final ConfigOption<String> NULL_STRING_LITERAL = ConfigOptions
             .key("null-string-literal")
             .stringType()
