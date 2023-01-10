@@ -94,6 +94,12 @@ public class RedisOptions {
                     .defaultValue(24 * 60 * 60)
                     .withDescription("sink the cache time to live.");
 
+    public static final ConfigOption<String> TTL_RANDOM_RANGE =
+            ConfigOptions.key("ttl.random.range")
+                    .stringType()
+                    .defaultValue("0")
+                    .withDescription("let every data message has a random ttl.");
+
     public static final ConfigOption<String> KAFKA_LOG_SERVE = ConfigOptions
             .key("kafka.log.servers")
             .stringType()

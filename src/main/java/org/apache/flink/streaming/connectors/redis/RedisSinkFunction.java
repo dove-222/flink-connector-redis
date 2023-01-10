@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
@@ -58,6 +59,9 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
     private final long bufferFlushMaxMutations;
     private final long bufferFlushIntervalMillis;
     private final Integer ttl;
+    private final SecureRandom random = new SecureRandom();
+    private final Integer randomMinNum;
+    private final Integer randomMaxNum;
     private final Boolean consoleLogEnabled;
 
     private final String host;
@@ -88,7 +92,8 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
                 null,
                 null,
                 null,
-                false);
+                false,
+                "0");
     }
 
     public RedisSinkFunction(RedisSinkMapper<IN> redisSinkMapper,
@@ -102,7 +107,8 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
                              String host,
                              String databaseName,
                              String tableName,
-                             Boolean consoleLogEnabled) {
+                             Boolean consoleLogEnabled,
+                             String randomTTL) {
         this.redisSinkMapper = redisSinkMapper;
         this.flinkConfigBase = flinkConfigBase;
         this.logContainer = logContainer;
@@ -115,6 +121,13 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
         this.databaseName = databaseName;
         this.tableName = tableName;
         this.consoleLogEnabled = consoleLogEnabled;
+
+        try {
+            randomMinNum = randomTTL.equals("0") ? 0 : Integer.parseInt(randomTTL.split("-")[0]);
+            randomMaxNum = randomTTL.equals("0") ? 0 : Integer.parseInt(randomTTL.split("-")[1]);
+        } catch (Exception e) {
+            throw new RuntimeException("Redis random ttl had some parse error: ttl.random.range ", e);
+        }
     }
 
     @Override
@@ -213,14 +226,15 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
         }
 
         if (ttl != 0) {
-            redisCommandsContainer.expire(data.getKey(), ttl);
+            int second = randomMaxNum == 0 ? ttl : randomMinNum + ttl + random.nextInt(randomMaxNum - randomMinNum);
+            redisCommandsContainer.expire(data.getKey(), second);
         }
 
     }
 
     private void consoleLog(IN value, RedisCommandData command, Long timestamp) {
         RowKind rowKind = ((RowData) value).getRowKind();
-        String str = String.format("CONSOLE.LOG %s key %s [command:'%s', value:'%s', ts:'%s', database:'%s', table:'%s', host:'%s']",
+        String str = String.format("SINK LOG %s key %s [command:'%s', value:'%s', ts:'%s', database:'%s', table:'%s', host:'%s']",
                 rowKind.shortString(), command.getKey(),command.getRedisCommand().getCommand(),
                 command.getValue(), timestamp, databaseName, tableName, host);
         LOG.info(str);
