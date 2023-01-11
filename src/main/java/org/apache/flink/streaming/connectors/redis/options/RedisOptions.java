@@ -94,8 +94,8 @@ public class RedisOptions {
                     .defaultValue(24 * 60 * 60)
                     .withDescription("sink the cache time to live.");
 
-    public static final ConfigOption<String> TTL_RANDOM_RANGE =
-            ConfigOptions.key("ttl.random.range")
+    public static final ConfigOption<String> SINK_TTL_RANGE =
+            ConfigOptions.key("sink.ttl.range")
                     .stringType()
                     .defaultValue("0")
                     .withDescription("let every data message has a random ttl.");

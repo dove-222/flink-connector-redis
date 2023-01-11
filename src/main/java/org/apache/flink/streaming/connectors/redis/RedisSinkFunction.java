@@ -108,7 +108,7 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
                              String databaseName,
                              String tableName,
                              Boolean consoleLogEnabled,
-                             String randomTTL) {
+                             String sinkTtlRange) {
         this.redisSinkMapper = redisSinkMapper;
         this.flinkConfigBase = flinkConfigBase;
         this.logContainer = logContainer;
@@ -123,10 +123,10 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
         this.consoleLogEnabled = consoleLogEnabled;
 
         try {
-            randomMinNum = randomTTL.equals("0") ? 0 : Integer.parseInt(randomTTL.split("-")[0]);
-            randomMaxNum = randomTTL.equals("0") ? 0 : Integer.parseInt(randomTTL.split("-")[1]);
+            randomMinNum = sinkTtlRange.equals("0") ? 0 : Integer.parseInt(sinkTtlRange.split("-")[0]);
+            randomMaxNum = sinkTtlRange.equals("0") ? 0 : Integer.parseInt(sinkTtlRange.split("-")[1]);
         } catch (Exception e) {
-            throw new RuntimeException("Redis random ttl had some parse error: ttl.random.range ", e);
+            throw new RuntimeException("Redis random ttl had some parse error: sink.ttl.range ", e);
         }
     }
 
@@ -225,8 +225,8 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
                         "Cannot process such data type: " + redisCommand);
         }
 
-        if (ttl != 0) {
-            int second = randomMaxNum == 0 ? ttl : randomMinNum + ttl + random.nextInt(randomMaxNum - randomMinNum);
+        if (ttl != 0 || randomMaxNum > 0) {
+            int second = randomMaxNum == 0 ? ttl : randomMinNum + random.nextInt(randomMaxNum - randomMinNum);
             redisCommandsContainer.expire(data.getKey(), second);
         }
 
