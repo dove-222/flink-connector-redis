@@ -38,9 +38,15 @@ public interface RedisCommandsContainer extends Closeable, Serializable {
 
     RedisFuture<String> hget(String key, String field);
 
+    void sadd(String key, String value);
+
+    void zadd(String key, double score, String value);
+
     void expire(String key, int seconds);
 
     void del(String key);
+
+    void execute(String key, Object value, Double score, ContainerConsumer<String, Object, Double> action);
 
     /**
      * 由于 lettuce 是线程安全的，所有实例共用一个连接，因此 connection.flushCommands 是全局配置

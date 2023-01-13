@@ -23,20 +23,30 @@ public class SQLTest extends TestRedisConfigBase {
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(env, environmentSettings);
 
         String ddl =
-                "create table sink_redis(" +
-                        "username VARCHAR, password VARCHAR, topic VARCHAR, PRIMARY KEY (username) NOT ENFORCED" +
-                        ") with ( 'connector'='redis', "
-                        + "'host'='"
-                        + REDIS_HOST
-                        + "','port'='"
-                        + REDIS_PORT
-                        + "', 'connect.mode'='single','password'='"
-                        + REDIS_PASSWORD
-                        + "','sink.ttl'='36','kafka.log.servers'='localhost:9092')";
+                "create table sink_redis(\n" +
+                        "  redis_key string comment 'redisKey',\n" +
+                        "  is_vip int comment '是否是会员',\n" +
+                        "  is_high_vip int comment '是否是贵族',\n" +
+                        "  rose_num bigint comment '玫瑰数',\n" +
+                        "  qb_num bigint comment '趣币数',\n" +
+                        "  total_order_amt double comment '总支付金额',\n" +
+                        "  recent_order_amt double comment '最近支付金额',\n" +
+                        "  recent_pay_time string comment '最近支付时间',\n" +
+                        "  zset_score double comment '权重',\n" +
+                        "  PRIMARY KEY (redis_key) NOT ENFORCED" +
+                        ") with (\n" +
+                        "  'connector'='redis', \n" +
+                        "  'host'='127.0.0.1',\n" +
+                        "  'connect.mode'='single',\n" +
+                        "  'data.type'='zset',\n" +
+                        "  'value.ignore-primary-key'='true', " +
+                        "  'console.log.enabled'='true', " +
+                        "  'sink.ttl'='100000'\n" +
+                        ")";
 
         tEnv.executeSql(ddl);
         String sql =
-                " insert into sink_redis select * from (values ('qq','IFHnjsdafu','sink_topic'))";
+                " insert into sink_redis select * from (values ('1235', 1, 1, 50, 3200, 188.50, 30.0, 'NULL', 90.0))";
         TableResult tableResult = tEnv.executeSql(sql);
         tableResult.getJobClient().get().getJobExecutionResult().get();
     }

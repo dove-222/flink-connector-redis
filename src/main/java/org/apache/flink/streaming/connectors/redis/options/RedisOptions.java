@@ -50,7 +50,7 @@ public class RedisOptions {
             .key("data.type")
             .stringType()
             .defaultValue("string")
-            .withDescription("data mode for insert to redis. choose string or hash.");
+            .withDescription("data mode for insert to redis. choose string, hash, set or zset.");
 
     public static final ConfigOption<String> FIELD_TERMINATED = ConfigOptions
             .key("field.terminated")

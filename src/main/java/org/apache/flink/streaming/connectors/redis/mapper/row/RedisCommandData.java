@@ -19,10 +19,16 @@ public class RedisCommandData {
      */
     private final Object value;
 
-    public RedisCommandData(RedisCommand redisCommand, String key, Object value) {
+    /**
+     * zset score
+     */
+    private final Double score;
+
+    public RedisCommandData(RedisCommand redisCommand, String key, Object value, Double score) {
         this.redisCommand = redisCommand;
         this.key = key;
         this.value = value;
+        this.score = score;
     }
 
     public RedisCommand getRedisCommand() {
@@ -35,6 +41,10 @@ public class RedisCommandData {
 
     public Object getValue() {
         return value;
+    }
+
+    public Double getScore() {
+        return score;
     }
 
     @Override

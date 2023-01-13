@@ -2,7 +2,6 @@ package org.apache.flink.streaming.connectors.redis.mapper.row.sink;
 
 import com.alibaba.fastjson2.JSONObject;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.connectors.redis.converter.RedisRowConverter;
 import org.apache.flink.streaming.connectors.redis.mapper.RedisCommand;
 import org.apache.flink.streaming.connectors.redis.mapper.RedisSinkMapper;
@@ -12,7 +11,6 @@ import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.constraints.Constraint;
 import org.apache.flink.table.api.constraints.UniqueConstraint;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.types.RowKind;
 
@@ -37,10 +35,12 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
 
     private final Boolean ignoreKey;
 
+    private static final String SORTED_SET_SCORE = "zset_score";
+
     /**
      * if a hash value is null and the nullStringLiteral has been set "false", it will skip that field.
      */
-    private final String hashSkipNullStringLiteral = "false";
+    private static final String HASH_SKIP_NULL_STRING_LITERAL = "false";
 
     public RowRedisSinkMapper(RedisCommand redisCommand,
                               TableSchema tableSchema,
@@ -79,10 +79,11 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
         RowKind rowKind = data.getRowKind();
         String redisKey = data.getString(primaryKeyIndex).toString();
         if (rowKind == RowKind.DELETE) {
-            return new RedisCommandData(RedisCommand.DEL, redisKey, "");
+            return new RedisCommandData(RedisCommand.DEL, redisKey, "", null);
         }
 
         switch (redisCommand) {
+            case SADD:
             case SET:
                 return StringUtils.isNotBlank(fieldTerminated)
                         ?
@@ -91,34 +92,91 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
                         convertToJsonSet(data, redisKey);
             case HSET:
                 return convertToHSet(data, redisKey);
+            case ZADD:
+                return convertToZAdd(data, redisKey);
             default:
-                throw new RuntimeException("redis-connector support string / hash only.");
+                throw new RuntimeException("redis-connector only support string, hash, set or zset.");
         }
     }
 
     private RedisCommandData convertToCSVSet(RowData data, String redisKey) {
-        StringBuilder sb = new StringBuilder();
-        int i = 0;
-        for (DataType type : tableColumns.values()) {
-
-            // check if a key needed to be ignored
-            if (ignoreKey && i == primaryKeyIndex) {
-                i++;
-            } else {
-                String value = RedisRowConverter.rowDataToString(type.getLogicalType(), data, i++);
-                sb.append(checkNullString(value));
-                sb.append(fieldTerminated);
-            }
-        }
-        sb.delete(sb.length() - fieldTerminated.length(), sb.length());
-        return new RedisCommandData(redisCommand, redisKey, sb.toString());
+        return new RedisCommandData(redisCommand, redisKey, convertRowToCSVString(data), null);
     }
 
     private RedisCommandData convertToJsonSet(RowData data, String redisKey) {
-        JSONObject json = new JSONObject();
+        return new RedisCommandData(redisCommand, redisKey, convertRowToJSONString(data), null);
+    }
+
+    private RedisCommandData convertToHSet(RowData data, String redisKey) {
+        Map<String, String> result = new LinkedHashMap<>();
+        convertRowToMap(data).forEach((columnName, value) -> {
+            if (value == null && HASH_SKIP_NULL_STRING_LITERAL.equals(nullStringLiteral)) {
+                //skip this field.
+            } else {
+                result.put(columnName, checkNullString(value));
+            }
+        });
+        return new RedisCommandData(redisCommand, redisKey, result, null);
+    }
+
+    private RedisCommandData convertToZAdd(RowData data, String redisKey) {
+        Map<String, String> columnMap = convertRowToMap(data);
+        String value;
+        double score = 0.0;
+        boolean scoreFlag = false;
+        if (StringUtils.isNotBlank(fieldTerminated)) {
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String, String> entry : columnMap.entrySet()) {
+                if (!SORTED_SET_SCORE.equals(entry.getKey())) {
+                    sb.append(checkNullString(entry.getValue())).append(fieldTerminated);
+                } else {
+                    scoreFlag = true;
+                    score = Double.parseDouble(entry.getValue());
+                }
+            }
+            value = sb.delete(sb.length() - fieldTerminated.length(), sb.length()).toString();
+        } else {
+            JSONObject jsonObject = new JSONObject();
+            for (Map.Entry<String, String> entry : columnMap.entrySet()) {
+                if (!SORTED_SET_SCORE.equals(entry.getKey())) {
+                    jsonObject.put(entry.getKey(), checkNullString(entry.getValue()));
+                } else {
+                    scoreFlag = true;
+                    score = Double.parseDouble(entry.getValue());
+                }
+            }
+            value = jsonObject.toJSONString();
+        }
+
+        if (!scoreFlag) {
+            throw new RuntimeException("The zset table must have a column named 'zset_score'.");
+        }
+        return new RedisCommandData(redisCommand, redisKey, value, score);
+    }
+
+    private String convertRowToCSVString(RowData data) {
+        StringBuilder sb = new StringBuilder();
+        convertRowToMap(data).forEach(
+                (columnName, value) -> sb.append(checkNullString(value)).append(fieldTerminated));
+        sb.delete(sb.length() - fieldTerminated.length(), sb.length());
+        return sb.toString();
+    }
+
+    private String convertRowToJSONString(RowData data) {
+        JSONObject jsonObject = new JSONObject();
+        convertRowToMap(data).forEach(
+                (columnName, value) -> jsonObject.put(columnName, checkNullString(value)));
+        return jsonObject.toJSONString();
+    }
+
+    /**
+     * return Map<columnName, value>
+     * value could be null
+     */
+    private Map<String, String> convertRowToMap(RowData data) {
+        Map<String, String> map = new LinkedHashMap<>();
         int i = 0;
         for (Map.Entry<String, DataType> entry : tableColumns.entrySet()) {
-
             // check if a key needed to be ignored
             if (ignoreKey && i == primaryKeyIndex) {
                 i++;
@@ -126,36 +184,10 @@ public class RowRedisSinkMapper implements RedisSinkMapper<RowData> {
                 String columnName = entry.getKey();
                 DataType dataType = entry.getValue();
                 String value = RedisRowConverter.rowDataToString(dataType.getLogicalType(), data, i++);
-                json.put(columnName, checkNullString(value));
+                map.put(columnName, value);
             }
-
         }
-        return new RedisCommandData(redisCommand, redisKey, json.toJSONString());
-    }
-
-    private RedisCommandData convertToHSet(RowData data, String redisKey) {
-        Map<String, String> map = new LinkedHashMap<>();
-        int i = 0;
-        for (Map.Entry<String, DataType> entry : tableColumns.entrySet()) {
-
-            // check if a key needed to be ignored
-            if (ignoreKey && i == primaryKeyIndex) {
-                i++;
-            } else {
-                String fieldName = entry.getKey();
-                String value =
-                        RedisRowConverter.rowDataToString(entry.getValue().getLogicalType(), data, i++);
-
-                //skip this field.
-                if (value == null && hashSkipNullStringLiteral.equals(nullStringLiteral)) {
-
-                } else {
-                    map.put(fieldName, checkNullString(value));
-                }
-            }
-
-        }
-        return new RedisCommandData(redisCommand, redisKey, map);
+        return map;
     }
 
     private String checkNullString(String value) {

@@ -11,6 +11,10 @@ public enum RedisCommand {
 
     HGET(RedisDataType.HASH, "hget"),
 
+    SADD(RedisDataType.SET, "sadd"),
+
+    ZADD(RedisDataType.SORTED_SET, "zadd"),
+
     DEL(RedisDataType.STRING, "del");
 
     private RedisDataType redisDataType;

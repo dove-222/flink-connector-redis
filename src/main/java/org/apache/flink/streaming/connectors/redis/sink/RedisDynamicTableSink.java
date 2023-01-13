@@ -111,8 +111,16 @@ public class RedisDynamicTableSink implements DynamicTableSink {
                 redisMapper = new RowRedisSinkMapper(RedisCommand.HSET,
                         tableSchema, fieldTerminated, nullStringLiteral, ignoreKey);
                 break;
+            case "set":
+                redisMapper = new RowRedisSinkMapper(RedisCommand.SADD,
+                        tableSchema, fieldTerminated, nullStringLiteral, ignoreKey);
+                break;
+            case "zset":
+                redisMapper = new RowRedisSinkMapper(RedisCommand.ZADD,
+                        tableSchema, fieldTerminated, nullStringLiteral, ignoreKey);
+                break;
             default:
-                throw new RuntimeException("redis-connector support string / hash only.");
+                throw new RuntimeException("Currently redis connector only support string, hash, set or zset.");
         }
 
         String kafkaServers = options.get(KAFKA_LOG_SERVE);

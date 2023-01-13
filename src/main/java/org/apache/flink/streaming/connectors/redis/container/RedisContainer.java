@@ -51,21 +51,13 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
 
     @Override
     public void set(String key, String value) {
-        try {
+        this.execute(key, value, null, (k, v, s) -> {
             if (isAsync) {
                 redisFuture = asyncCommands.set(key, value);
             } else {
                 syncCommands.set(key, value);
             }
-        } catch (Exception e) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error(
-                        "Cannot send Redis message with command SET to key {} error message {}",
-                        key,
-                        e.getMessage());
-            }
-            throw e;
-        }
+        });
     }
 
     @Override
@@ -87,22 +79,13 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
 
     @Override
     public void hset(String key, Map<String, String> map) {
-        try {
+        this.execute(key, map, null, (k, v, s) -> {
             if (isAsync) {
                 redisFuture = asyncCommands.hset(key, map);
             } else {
                 syncCommands.hset(key, map);
             }
-        } catch (Exception e) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error(
-                        "Cannot send Redis message with command HSET to key {} and hashField {} error message {}",
-                        key,
-                        map,
-                        e.getMessage());
-            }
-            throw e;
-        }
+        });
     }
 
     @Override
@@ -124,38 +107,59 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
     }
 
     @Override
+    public void sadd(String key, String value) {
+        this.execute(key, value, null, (k, v, s) -> {
+            if (isAsync) {
+                redisFuture = asyncCommands.sadd(key, value);
+            } else {
+                syncCommands.sadd(key, value);
+            }
+        });
+    }
+
+    @Override
+    public void zadd(String key, double score, String value) {
+        this.execute(key, value, score, (k, v, s) -> {
+            if (isAsync) {
+                redisFuture = asyncCommands.zadd(key, score, value);
+            } else {
+                syncCommands.zadd(key, score, value);
+            }
+        });
+    }
+
+    @Override
     public void expire(String key, int seconds) {
-        try {
+        this.execute(key, seconds, null, (k, v, s) -> {
             if (isAsync) {
                 redisFuture = asyncCommands.expire(key, seconds);
             } else {
                 syncCommands.expire(key, seconds);
             }
-        } catch (Exception e) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error(
-                        "Cannot send Redis message with command exists to key {}  seconds {} error message {}",
-                        key,
-                        seconds,
-                        e.getMessage());
-            }
-            throw e;
-        }
+        });
     }
 
     @Override
     public void del(String key) {
-        try {
+        this.execute(key, null, null, (k, v, s) -> {
             if (isAsync) {
                 redisFuture = asyncCommands.del(key);
             } else {
                 syncCommands.del(key);
             }
+        });
+    }
+
+    @Override
+    public void execute(String key, Object value, Double score, ContainerConsumer<String, Object, Double> action) {
+        try {
+            action.execute(key, value, score);
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(
-                        "Cannot send Redis message with command del to key {} error message {}",
+                        "Cannot send Redis message for key {}, value {}, error message {}",
                         key,
+                        value,
                         e.getMessage());
             }
             throw e;

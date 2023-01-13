@@ -217,7 +217,14 @@ public class RedisSinkFunction<IN> extends RichSinkFunction<IN> implements Check
             case SET:
                 redisCommandsContainer.set(data.getKey(), (String) data.getValue());
                 break;
-            case HSET: redisCommandsContainer.hset(data.getKey(), (Map<String, String>) data.getValue());
+            case HSET:
+                redisCommandsContainer.hset(data.getKey(), (Map<String, String>) data.getValue());
+                break;
+            case SADD:
+                redisCommandsContainer.sadd(data.getKey(), (String) data.getValue());
+                break;
+            case ZADD:
+                redisCommandsContainer.zadd(data.getKey(), data.getScore(), (String) data.getValue());
                 break;
             case DEL: redisCommandsContainer.del(data.getKey());
                 break;
