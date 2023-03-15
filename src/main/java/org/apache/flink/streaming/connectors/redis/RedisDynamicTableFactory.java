@@ -37,6 +37,7 @@ public class RedisDynamicTableFactory implements DynamicTableSourceFactory, Dyna
 
     /**
      * factory 唯一标识
+     * SPI 会加载到 然后选择 connector 的时候会调用本方法 去跟 SQL 中的匹配
      * sql connector 中指定
      */
     @Override

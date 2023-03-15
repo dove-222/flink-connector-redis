@@ -30,7 +30,7 @@ public class TestRedisConfigBase {
 
     public static final String CLUSTER_PASSWORD = "***";
     public static final String CLUSTERNODES =
-            "10.11.80.147:7000,10.11.80.147:7001,10.11.80.147:8000,10.11.80.147:8001,10.11.80.147:9000,10.11.80.147:9001";
+            "localhost:7000";
     private RedisClient redisClient;
     protected StatefulRedisConnection<String, String> singleConnect;
     protected RedisCommands singleRedisCommands;

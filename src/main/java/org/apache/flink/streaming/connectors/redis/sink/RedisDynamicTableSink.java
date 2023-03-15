@@ -20,11 +20,7 @@ import org.apache.flink.util.Preconditions;
 
 import static org.apache.flink.streaming.connectors.redis.options.RedisOptions.*;
 
-/**
- * https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/dev/table/sourcessinks/
- *
- * https://www.alibabacloud.com/help/zh/faq-detail/118038.htm?spm=a2c63.q38357.a3.16.48fa711fo1gVUd
- */
+
 public class RedisDynamicTableSink implements DynamicTableSink {
 
     /**

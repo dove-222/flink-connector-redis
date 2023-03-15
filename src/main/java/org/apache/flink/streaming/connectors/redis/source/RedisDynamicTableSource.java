@@ -17,9 +17,6 @@ import javax.annotation.Nullable;
 import static org.apache.flink.streaming.connectors.redis.options.RedisOptions.createValueFormatProjection;
 
 
-/**
- * zixuan.guo Redis source
- */
 public class RedisDynamicTableSource implements LookupTableSource {
 
     /**
