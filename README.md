@@ -21,7 +21,7 @@ Redis 连接器在 upsert 模式下运行，并且使用 DDL 中定义的主键�
 ```
    lettuce-core-6.2.1.RELEASE.jar
    reactor-core-3.4.23.jar
-   flink-connector-redis-1.0-1.12.jar
+   flink-connector-redis-1.1.0-1.12.jar
 ```
    
 ### 如何使用 Redis 表
